@@ -14,3 +14,4 @@ agentverse/
 # kit run artefacts that embed price data: keep only REPORT.md, summary.json, COMMITMENT/SEED files
 results/**/case-results.jsonl
 results/**/predictions.jsonl
+results/**/adapter-stderr.log

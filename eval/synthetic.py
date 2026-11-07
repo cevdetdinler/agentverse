@@ -25,19 +25,29 @@ def random_walk_path(
     effect = {"kind": "dip"|"momentum", "lookback": L, "threshold": x, "hold": H, "drift": d}
     dip:      after an L-bar return <= -x, add drift +d per bar for the next H bars.
     momentum: after an L-bar return >= +x, add drift +d per bar for the next H bars.
+    Then (giveback, default on) drift -d per bar for H more bars, so buy-and-hold gains nothing from
+    the effect on average: only a rule that times entry AND exit can capture it. The benchmark is
+    buy-and-hold, so this is what "a real edge" means here.
     The trigger only looks at prices already generated (causal).
     """
     n = n or rng.randint(48, 240)
     vol = vol if vol is not None else rng.uniform(0.005, 0.01)
     logp = [math.log(10000.0)]
     boost_left = 0
+    give_left = 0
+    giveback = bool(effect.get("giveback", True)) if effect else False
     for t in range(1, n):
         drift = 0.0
         if effect and boost_left > 0:
             drift = effect["drift"]
             boost_left -= 1
+            if boost_left == 0 and giveback:
+                give_left = effect["hold"]
+        elif effect and give_left > 0:
+            drift = -effect["drift"]
+            give_left -= 1
         logp.append(logp[-1] + rng.gauss(0.0, vol) + drift)
-        if effect and boost_left == 0:
+        if effect and boost_left == 0 and give_left == 0:
             L = effect["lookback"]
             if t >= L:
                 r = math.exp(logp[t] - logp[t - L]) - 1

@@ -1,0 +1,12 @@
+{
+  "seed": 3549550673684109084,
+  "commitment_check": "18b721a58f13a9ba4a1f43eede64594d9aca0f6b2f0082db71af6d3a0c2fccfc",
+  "real_months": [
+    "DOGEUSDT 1h 2021-06",
+    "DOGEUSDT 1h 2026-09",
+    "LTCUSDT 1h 2021-10",
+    "LTCUSDT 1h 2024-02",
+    "LTCUSDT 4h 2023-05",
+    "XRPUSDT 1h 2026-01"
+  ]
+}

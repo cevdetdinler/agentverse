@@ -58,7 +58,14 @@ class GeminiClient:
         key = api_key or os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
         if not key:
             raise AgentCallError("No Gemini API key: copy .env.example to .env and set GEMINI_API_KEY.")
+        self._key = key
         self._client = genai.Client(api_key=key)
+
+    def reset(self) -> None:
+        """Fresh HTTP client (drops pooled connections). Used after a transport timeout."""
+        from google import genai
+
+        self._client = genai.Client(api_key=self._key)
 
     def create(self, *, model, input, system_instruction, previous_interaction_id, thinking_level, response_schema, timeout):
         # store=True is required for previous_interaction_id threading (unstored turns cannot be continued)
@@ -265,7 +272,7 @@ class Agent:
     # ------------------------------------------------------------------ the single choke point
     def call(self, purpose: str, role: str, prompt: Any, *, session_id: str, schema: Optional[dict] = None,
              system: Optional[str] = None, previous_id: Optional[str] = None, thinking: str = "medium",
-             validate=None) -> tuple[LLMResponse, Any]:
+             validate=None, timeout: Optional[float] = None) -> tuple[LLMResponse, Any]:
         """Enforces per-session caps, timeout, logs llm_call, parses+validates JSON (one retry)."""
         model = config.MODEL_IDS[role]
         with self._lock:
@@ -280,16 +287,26 @@ class Agent:
         last_err = None
         current_prompt = prompt
         for attempt in range(attempts):
-            t0 = time.time()
-            try:
-                resp = self.client.create(model=model, input=current_prompt, system_instruction=system,
-                                          previous_interaction_id=previous_id, thinking_level=thinking,
-                                          response_schema=schema, timeout=config.LLM_TIMEOUT_S[role])
-            except Exception as exc:
-                self.ledger.append("llm_call", {"purpose": purpose, "model": model, "session_id": session_id,
-                                                "ok": False, "error": f"{type(exc).__name__}: {str(exc)[:200]}",
-                                                "latency_ms": int(1000 * (time.time() - t0)), "attempt": attempt + 1})
-                raise AgentCallError(f"{purpose}: model call failed ({type(exc).__name__})") from exc
+            resp = None
+            for transport_try in (1, 2):
+                t0 = time.time()
+                limit_s = (timeout or config.LLM_TIMEOUT_S[role]) if transport_try == 2 else \
+                    min(timeout or config.LLM_TIMEOUT_S[role], config.FIRST_TRY_TIMEOUT_S)
+                try:
+                    resp = self.client.create(model=model, input=current_prompt, system_instruction=system,
+                                              previous_interaction_id=previous_id, thinking_level=thinking,
+                                              response_schema=schema, timeout=limit_s)
+                    break
+                except Exception as exc:
+                    self.ledger.append("llm_call", {"purpose": purpose, "model": model, "session_id": session_id,
+                                                    "ok": False, "error": f"{type(exc).__name__}: {str(exc)[:200]}",
+                                                    "latency_ms": int(1000 * (time.time() - t0)), "attempt": attempt + 1,
+                                                    "transport_try": transport_try})
+                    # A stalled request on a pooled connection was seen after idle gaps: retry once on a fresh client.
+                    if transport_try == 1 and "Timeout" in type(exc).__name__ and hasattr(self.client, "reset"):
+                        self.client.reset()
+                        continue
+                    raise AgentCallError(f"{purpose}: model call failed ({type(exc).__name__})") from exc
             entry = {"purpose": purpose, "model": model, "interaction_id": resp.interaction_id, "session_id": session_id,
                      "ok": True, "latency_ms": int(1000 * (time.time() - t0)), "attempt": attempt + 1, **resp.usage}
             try:
@@ -331,9 +348,23 @@ class Agent:
             card = RuleCard.model_validate(spec)  # raises -> retried once with the error
             return {"spec": card.model_dump(mode="json")}
 
-        resp, data = self.call("translate_hunch", "reason", prompt, session_id=session_id, schema=TRANSLATE_SCHEMA,
-                               system=TRANSLATE_SYSTEM, previous_id=previous_id, thinking="medium", validate=validate)
-        return {**data, "interaction_id": resp.interaction_id, "model": resp.model}
+        if not (answers and previous_id):
+            resp, data = self.call("translate_hunch", "reason", prompt, session_id=session_id, schema=TRANSLATE_SCHEMA,
+                                   system=TRANSLATE_SYSTEM, thinking="medium", validate=validate)
+            return {**data, "interaction_id": resp.interaction_id, "model": resp.model, "threaded": False}
+        # Continue the same interaction thread; if the threaded call stalls (seen intermittently), fall back to
+        # one stateless call that carries the whole transcript. Both attempts are logged.
+        try:
+            resp, data = self.call("translate_hunch", "reason", prompt, session_id=session_id, schema=TRANSLATE_SCHEMA,
+                                   system=TRANSLATE_SYSTEM, previous_id=previous_id, thinking="medium",
+                                   validate=validate, timeout=config.THREADED_TIMEOUT_S)
+            return {**data, "interaction_id": resp.interaction_id, "model": resp.model, "threaded": True}
+        except AgentCallError:
+            transcript = (_wrap("user_hunch", hunch) + "\nYou asked clarifying questions. The user's answers "
+                          "(question -> answer):\n" + prompt)
+            resp, data = self.call("translate_hunch_fallback", "reason", transcript, session_id=session_id,
+                                   schema=TRANSLATE_SCHEMA, system=TRANSLATE_SYSTEM, thinking="medium", validate=validate)
+            return {**data, "interaction_id": resp.interaction_id, "model": resp.model, "threaded": False}
 
     # ------------------------------------------------------------------ 2. plan diagnostics (pre-registered)
     def plan_diagnostics(self, session_id: str, spec: RuleCard, a1: dict) -> list[dict]:

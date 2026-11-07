@@ -126,7 +126,7 @@ function variantWarning(q) {
   }
   if (!best || q.trim().length < 12) { pill.classList.add("hidden"); return; }
   const n = best.trials;
-  pill.innerHTML = `⚠ You've tested ${n} variant${n === 1 ? "" : "s"} of this idea. The bar is now <span class="mono">p &lt; 0.05/${n} = ${(0.05 / n).toPrecision(2)}</span>`;
+  pill.innerHTML = `⚠ You've tested ${n} variant${n === 1 ? "" : "s"} of this idea. Another one raises the bar to <span class="mono">p &lt; 0.05/${n + 1} = ${(0.05 / (n + 1)).toPrecision(2)}</span>`;
   pill.title = `Similar to: "${best.hunch_text}" (token overlap ${(best.sim * 100).toFixed(0)}%, computed in code, not by the model)`;
   pill.classList.remove("hidden");
 }
@@ -211,6 +211,9 @@ async function submitHunch() {
   const text = $("#hunch").value.trim();
   if (!text) return;
   hide("#suggest");
+  clearTimeout(suggestTimer);
+  if (suggestAbort) suggestAbort.abort();
+  S.suggestions = []; S.ghost = ""; renderGhost();
   S.hunch = text; S.spec = null; S.approved = null; S.attacks = null; S.vault = null;
   resetBelow("#sec-questions");
   const sec = $("#sec-questions"); show("#sec-questions");
@@ -261,7 +264,11 @@ function renderQuestions(out) {
     $("#answer-go").disabled = true;
     sec.insertAdjacentHTML("beforeend", loader("Turning your answers into exact rules…"));
     try { handleTranslate(await api("/api/hunch", { body: { session_id: S.sid, answers } })); }
-    catch (e) { sec.insertAdjacentHTML("beforeend", errorBox(e)); }
+    catch (e) {
+      sec.querySelectorAll(".loader").forEach((l) => l.remove());
+      sec.insertAdjacentHTML("beforeend", errorBox(e));
+      $("#answer-go").disabled = false;
+    }
     refreshChain();
   };
 }
@@ -413,8 +420,7 @@ function chartSVG(c) {
     return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">${vals.map((v, i) => {
       const h = (Math.abs(v) / max) * (mid - 4);
       return `<rect x="${i * bw + bw * 0.2}" y="${v >= 0 ? mid - h : mid}" width="${bw * 0.6}" height="${Math.max(1, h)}" rx="2" fill="${v >= 0 ? "#111" : "#ef4444"}"/>`;
-    }).join("")}<line x1="0" x2="${W}" y1="${mid}" y2="${mid}" stroke="#d1d5db"/></svg>
-      <div class="sub">${c.labels.map((l, i) => `${esc(l)} ${esc(vals[i])}`).join(" · ")}</div>`;
+    }).join("")}<line x1="0" x2="${W}" y1="${mid}" y2="${mid}" stroke="#d1d5db"/></svg>`;
   }
   if (c.type === "wobble") {
     if (!c.joint) return `<div class="sub">one parameter only: no joint grid</div>`;
@@ -446,7 +452,7 @@ function attackCard(r) {
     ${prereg}
     <div class="summary">${esc(r.summary)}</div>
     <div class="foot"><span class="small muted">${esc(r.kind === "diagnostic" ? "diagnostic: " : "gate: ")}${esc(r.threshold)}</span>
-      <button class="btn ghost small" data-trace="${r.id}">trace →</button></div>
+      <button class="btn ghost small nowrap" data-trace="${r.id}">trace&nbsp;→</button></div>
   </div>`;
 }
 

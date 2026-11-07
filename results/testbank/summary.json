@@ -50,23 +50,27 @@
         "INCONCLUSIVE": 5
       }
     },
+    "planted_excluded": {
+      "n": 13,
+      "reason": "oracle median excess <= 0 on 3,000 fresh paths: this rule does not exploit the effect"
+    },
     "planted": {
       "true_approval_skeptic_all": {
-        "k": 5,
-        "n": 30,
-        "rate": 0.167,
+        "k": 4,
+        "n": 17,
+        "rate": 0.235,
         "wilson95": [
-          0.073,
-          0.336
+          0.096,
+          0.473
         ]
       },
       "true_approval_naive_all": {
-        "k": 12,
-        "n": 30,
-        "rate": 0.4,
+        "k": 16,
+        "n": 17,
+        "rate": 0.941,
         "wilson95": [
-          0.246,
-          0.577
+          0.73,
+          0.99
         ]
       },
       "power_curve": [
@@ -74,124 +78,126 @@
           "strength_drift_per_bar": 0.001,
           "true_approval_skeptic": {
             "k": 0,
-            "n": 6,
+            "n": 3,
             "rate": 0.0,
             "wilson95": [
               0.0,
-              0.39
+              0.561
             ]
           },
           "true_approval_naive": {
-            "k": 1,
-            "n": 6,
-            "rate": 0.167,
+            "k": 2,
+            "n": 3,
+            "rate": 0.667,
             "wilson95": [
-              0.03,
-              0.564
+              0.208,
+              0.939
             ]
           },
           "skeptic_labels": {
-            "REJECTED": 6
+            "INCONCLUSIVE": 2,
+            "REJECTED": 1
           }
         },
         {
           "strength_drift_per_bar": 0.002,
           "true_approval_skeptic": {
             "k": 0,
-            "n": 6,
+            "n": 4,
             "rate": 0.0,
             "wilson95": [
               0.0,
-              0.39
+              0.49
             ]
           },
           "true_approval_naive": {
-            "k": 2,
-            "n": 6,
-            "rate": 0.333,
+            "k": 4,
+            "n": 4,
+            "rate": 1.0,
             "wilson95": [
-              0.097,
-              0.7
+              0.51,
+              1.0
             ]
           },
           "skeptic_labels": {
-            "REJECTED": 5,
-            "INCONCLUSIVE": 1
+            "INCONCLUSIVE": 2,
+            "REJECTED": 2
           }
         },
         {
           "strength_drift_per_bar": 0.003,
           "true_approval_skeptic": {
             "k": 1,
-            "n": 6,
-            "rate": 0.167,
+            "n": 3,
+            "rate": 0.333,
             "wilson95": [
-              0.03,
-              0.564
+              0.061,
+              0.792
             ]
           },
           "true_approval_naive": {
-            "k": 1,
-            "n": 6,
-            "rate": 0.167,
+            "k": 3,
+            "n": 3,
+            "rate": 1.0,
             "wilson95": [
-              0.03,
-              0.564
+              0.439,
+              1.0
             ]
           },
           "skeptic_labels": {
             "SURVIVED": 1,
-            "REJECTED": 5
+            "INCONCLUSIVE": 1,
+            "REJECTED": 1
           }
         },
         {
           "strength_drift_per_bar": 0.004,
           "true_approval_skeptic": {
             "k": 3,
-            "n": 6,
-            "rate": 0.5,
+            "n": 4,
+            "rate": 0.75,
             "wilson95": [
-              0.188,
-              0.812
+              0.301,
+              0.954
             ]
           },
           "true_approval_naive": {
             "k": 4,
-            "n": 6,
-            "rate": 0.667,
+            "n": 4,
+            "rate": 1.0,
             "wilson95": [
-              0.3,
-              0.903
+              0.51,
+              1.0
             ]
           },
           "skeptic_labels": {
             "SURVIVED": 3,
-            "REJECTED": 3
+            "REJECTED": 1
           }
         },
         {
           "strength_drift_per_bar": 0.006,
           "true_approval_skeptic": {
-            "k": 1,
-            "n": 6,
-            "rate": 0.167,
+            "k": 0,
+            "n": 3,
+            "rate": 0.0,
             "wilson95": [
-              0.03,
-              0.564
+              0.0,
+              0.561
             ]
           },
           "true_approval_naive": {
-            "k": 4,
-            "n": 6,
-            "rate": 0.667,
+            "k": 3,
+            "n": 3,
+            "rate": 1.0,
             "wilson95": [
-              0.3,
-              0.903
+              0.439,
+              1.0
             ]
           },
           "skeptic_labels": {
-            "REJECTED": 5,
-            "SURVIVED": 1
+            "REJECTED": 2,
+            "INCONCLUSIVE": 1
           }
         }
       ]
@@ -236,9 +242,9 @@
     }
   },
   "meta": {
-    "finished": "2026-11-07 17:24",
+    "finished": "2026-11-07 17:31",
     "cases": 130,
     "k": 1000,
-    "seconds": 327
+    "seconds": 390
   }
 }

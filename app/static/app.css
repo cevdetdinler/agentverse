@@ -72,7 +72,8 @@ section.step { margin-top: var(--gutter); }
 .hero p.lede { font-size: 17px; margin: 10px 0 24px; max-width: 680px; }
 .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
 .stack > * + * { margin-top: 12px; }
-.section-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 14px; }
+.section-head { display: flex; align-items: baseline; gap: 4px 12px; margin-bottom: 14px; flex-wrap: wrap; }
+.nowrap { white-space: nowrap; }
 .section-head .step-no { font: 600 12px var(--mono); color: var(--muted); }
 
 /* ---------- buttons */
@@ -218,4 +219,6 @@ section.step { margin-top: var(--gutter); }
   .topbar { flex-wrap: wrap; }
   .verdict { grid-template-columns: 1fr; }
   .badge.model { display: none; }
+  .section-head > .muted { flex-basis: 100%; }
+  .hunch-input, .hunch-ghost { font-size: 16px; }
 }

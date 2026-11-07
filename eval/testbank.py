@@ -38,7 +38,8 @@ OUT = ROOT / "results" / "testbank"
 PRACTICE_N, VAULT_N = 300, 150
 ORACLE_N = 3000  # ground truth for planted rules: median excess on 3,000 fresh paths from the same generator
 PLANT = {"lookback": 24, "threshold": 0.04, "hold": 24}
-STRENGTHS = [0.001, 0.002, 0.003, 0.004, 0.006]
+STRENGTHS = [0.0015, 0.002, 0.003, 0.004, 0.005]
+EDGE_BANDS = [(0, 100), (100, 250), (250, 500), (500, 10**9)]
 
 
 def _write_inputs(path: Path, paths) -> None:
@@ -155,10 +156,10 @@ def build_cases(quick: bool) -> list[dict]:
     cases = [{"group": "null_guaranteed", "seed": 1000 + i} for i in range(n(50))]
     cases += [{"group": "null_presumed", "seed": 2000 + i} for i in range(n(30))]
     i = 0
-    per = max(2, n(6))
+    per = max(2, n(10))
     for d in STRENGTHS:
-        for j in range(per):
-            cases.append({"group": "planted", "seed": 3000 + i, "strength": d, "kind": "dip" if j % 2 == 0 else "momentum"})
+        for j in range(per):  # mostly dip rules: momentum rules re-enter into the giveback and rarely have a true edge
+            cases.append({"group": "planted", "seed": 3000 + i, "strength": d, "kind": "momentum" if j % 5 == 4 else "dip"})
             i += 1
     cases += [{"group": "p_hacked", "seed": 4000 + i} for i in range(n(20))]
     return cases
@@ -183,14 +184,21 @@ def summarise(recs: list[dict]) -> dict:
     s["groups"]["planted_excluded"] = {"n": len(by("planted")) - len(rs),
                                        "reason": "oracle median excess <= 0 on 3,000 fresh paths: this rule does not exploit the effect"}
     curve = []
-    for d in sorted({r["strength"] for r in rs}):
-        sub = [r for r in rs if r["strength"] == d]
-        curve.append({"strength_drift_per_bar": d, "true_approval_skeptic": rate([r["skeptic_approve"] for r in sub]),
+    for lo, hi in EDGE_BANDS:
+        sub = [r for r in rs if lo < r["oracle_median_excess"] <= hi]
+        if not sub:
+            continue
+        curve.append({"true_edge_bps": [lo, hi], "n": len(sub),
+                      "true_approval_skeptic": rate([r["skeptic_approve"] for r in sub]),
                       "true_approval_naive": rate([r["naive_approve"] for r in sub]),
                       "skeptic_labels": _count([r["skeptic"]["label"] for r in sub])})
+    by_d = []
+    for d in sorted({r["strength"] for r in rs}):
+        sub = [r for r in rs if r["strength"] == d]
+        by_d.append({"strength_drift_per_bar": d, "true_approval_skeptic": rate([r["skeptic_approve"] for r in sub])})
     s["groups"]["planted"] = {"true_approval_skeptic_all": rate([r["skeptic_approve"] for r in rs]),
                               "true_approval_naive_all": rate([r["naive_approve"] for r in rs]),
-                              "power_curve": curve}
+                              "power_by_true_edge": curve, "power_by_drift": by_d}
     rs = by("p_hacked")
     s["groups"]["p_hacked"] = {
         "false_approval_naive": rate([r["naive_approve"] for r in rs]),
@@ -247,13 +255,18 @@ def report(s: dict, meta: dict) -> str:
         "",
         "Planted timing effect: after a 24-bar move of 4% (down for *dip*, up for *momentum*), the price drifts +d per bar",
         "for 24 bars, then gives it back over the next 24 bars, so buy-and-hold gains nothing from the effect on average.",
-        "Test rules use nearby but not identical parameters (lookback 12/24/36, threshold 3–5%, hold 12/24/36).",
+        f"Drift strengths d = {', '.join(str(d) for d in STRENGTHS)}. Test rules use nearby but not identical parameters",
+        "(lookback 20/24/28, threshold 3.5–4.5%, hold 18/24). **Ground truth per rule** is its median excess on 3,000 fresh",
+        "paths from the same generator (the oracle). Power is shown by that true edge size, because a stronger planted",
+        "drift does not always give a given rule a bigger edge (a strong giveback can itself trigger dip entries).",
         "",
-        "| drift d per bar | Naive approves | Skeptic approves | Skeptic verdicts |",
-        "|---|---|---|---|",
+        "| True edge (oracle median excess) | Rules | Naive approves | Skeptic approves | Skeptic verdicts |",
+        "|---|---|---|---|---|",
     ]
-    for c in g["planted"]["power_curve"]:
-        lines.append(f"| {c['strength_drift_per_bar']} | {_fmt(c['true_approval_naive'])} | {_fmt(c['true_approval_skeptic'])} | "
+    for c in g["planted"]["power_by_true_edge"]:
+        lo, hi = c["true_edge_bps"]
+        band = f"> {lo} bps" if hi >= 10**9 else f"{lo}–{hi} bps"
+        lines.append(f"| {band} | {c['n']} | {_fmt(c['true_approval_naive'])} | {_fmt(c['true_approval_skeptic'])} | "
                      + ", ".join(f"{k} {v}" for k, v in sorted(c["skeptic_labels"].items())) + " |")
     lines += [
         "",
@@ -265,8 +278,9 @@ def report(s: dict, meta: dict) -> str:
         f"and {_pct(g['p_hacked']['false_approval_skeptic_hidden_trials'])} (even with the tries hidden).",
         f"- Planted rules whose oracle median excess (3,000 fresh paths) was not positive are excluded from the power table "
         f"({g['planted_excluded']['n']} excluded): a planted effect does not mean every nearby rule profits from it.",
-        "- Skeptic trades power for safety: at weak strengths it says REJECTED or INCONCLUSIVE. With 6 rules per strength the",
-        "  confidence intervals are wide; read the trend, not single cells.",
+        "- Skeptic trades power for safety: small true edges usually come back INCONCLUSIVE or REJECTED (the 150-path vault",
+        "  has limited power). Cells hold few rules, so the confidence intervals are wide: read the trend, not single cells.",
+        "- The naive screen's high 'power' is not a virtue: it is the same screen that approves no-edge rules above.",
         "- Synthetic random walks are not markets. None of these rates says anything about real-world profitability.",
         "",
         "Reproduce: `.venv\\Scripts\\python.exe eval\\testbank.py` (seeds are fixed in `build_cases`).",

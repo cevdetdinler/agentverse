@@ -3,7 +3,7 @@
 > Our own synthetic generator (`eval/synthetic.py`) and our own checker. This is **not** independent
 > evidence. It checks that Skeptic's verdicts behave as designed when the right answer is known.
 
-Generated 2026-11-07 17:24 · 130 cases · permutation K = 1000 · 300 practice + 150 vault paths per synthetic case · seeds in `cases.jsonl`.
+Generated 2026-11-07 17:31 · 130 cases · permutation K = 1000 · 300 practice + 150 vault paths per synthetic case · seeds in `cases.jsonl`.
 
 **Approve** means Skeptic's final verdict is SURVIVED (it passed every practice check *and* the one-shot vault).
 **Naive backtester** means approve if the practice mean excess vs buy-and-hold is > 0, which is what a typical
@@ -28,17 +28,18 @@ Test rules use nearby but not identical parameters (lookback 12/24/36, threshold
 
 | drift d per bar | Naive approves | Skeptic approves | Skeptic verdicts |
 |---|---|---|---|
-| 0.001 | 1/6 = 17% (95% CI 3–56%) | 0/6 = 0% (95% CI 0–39%) | REJECTED 6 |
-| 0.002 | 2/6 = 33% (95% CI 10–70%) | 0/6 = 0% (95% CI 0–39%) | INCONCLUSIVE 1, REJECTED 5 |
-| 0.003 | 1/6 = 17% (95% CI 3–56%) | 1/6 = 17% (95% CI 3–56%) | REJECTED 5, SURVIVED 1 |
-| 0.004 | 4/6 = 67% (95% CI 30–90%) | 3/6 = 50% (95% CI 19–81%) | REJECTED 3, SURVIVED 3 |
-| 0.006 | 4/6 = 67% (95% CI 30–90%) | 1/6 = 17% (95% CI 3–56%) | REJECTED 5, SURVIVED 1 |
+| 0.001 | 2/3 = 67% (95% CI 21–94%) | 0/3 = 0% (95% CI 0–56%) | INCONCLUSIVE 2, REJECTED 1 |
+| 0.002 | 4/4 = 100% (95% CI 51–100%) | 0/4 = 0% (95% CI 0–49%) | INCONCLUSIVE 2, REJECTED 2 |
+| 0.003 | 3/3 = 100% (95% CI 44–100%) | 1/3 = 33% (95% CI 6–79%) | INCONCLUSIVE 1, REJECTED 1, SURVIVED 1 |
+| 0.004 | 4/4 = 100% (95% CI 51–100%) | 3/4 = 75% (95% CI 30–95%) | REJECTED 1, SURVIVED 3 |
+| 0.006 | 3/3 = 100% (95% CI 44–100%) | 0/3 = 0% (95% CI 0–56%) | INCONCLUSIVE 1, REJECTED 2 |
 
 ## Reading this honestly
 
-- The naive screen approves roughly half of the no-edge rules: its false-approval rate is the cost Skeptic exists to cut.
-- Skeptic trades power for safety. At weak planted strengths it usually says REJECTED or INCONCLUSIVE, which is the
-  intended behaviour when the evidence is thin.
-- Synthetic random walks are not markets. These rates say nothing about real-world profitability.
+- On no-edge rules the naive screen approved 9/50 (random walks), 2/30 (real data) and 4/20 (p-hacked); Skeptic approved 0/50, 0/30 and 0/20 (even with the tries hidden).
+- Planted rules whose oracle median excess (3,000 fresh paths) was not positive are excluded from the power table (13 excluded): a planted effect does not mean every nearby rule profits from it.
+- Skeptic trades power for safety: at weak strengths it says REJECTED or INCONCLUSIVE. With 6 rules per strength the
+  confidence intervals are wide; read the trend, not single cells.
+- Synthetic random walks are not markets. None of these rates says anything about real-world profitability.
 
 Reproduce: `.venv\Scripts\python.exe eval\testbank.py` (seeds are fixed in `build_cases`).

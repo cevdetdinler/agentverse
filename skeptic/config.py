@@ -22,6 +22,8 @@ MODEL_IDS = {
     "router": "gemini-3.5-flash-lite",
 }
 LLM_TIMEOUT_S = {"reason": 60, "fast": 30, "router": 10}
+FIRST_TRY_TIMEOUT_S = 30  # typical calls take 7-15 s; a stall is retried once on a fresh HTTP client
+THREADED_TIMEOUT_S = 25  # a threaded follow-up that stalls falls back to a stateless call with the transcript
 LLM_CALL_CAPS = {"reason": 60, "fast": 120, "router": 300}  # per session
 
 # ---------------------------------------------------------------- practice gate

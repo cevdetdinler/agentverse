@@ -424,8 +424,7 @@ def a6_trials(spec: RuleCard, a2: AttackResult, trials: int) -> AttackResult:
         threshold=f"p_adj = min(1, p_perm × trials) < {ALPHA}",
         inputs={"trials": trials, "fingerprint": spec.fingerprint},
         summary=summary,
-        chart={"type": "bars", "labels": ["p_perm", "p_adj", "bar"], "values": [p_perm, numbers["p_adj"], numbers["bar"]],
-               "label": "p-values"},
+        chart={},
     )
 
 
@@ -503,7 +502,7 @@ def d_exposure_check(spec, paths, ev) -> AttackResult:
         id="", name="Exposure check", hypothesis="The rule is not just buy-and-hold in disguise.",
         numbers=numbers, passed=not disguised, threshold="not (exposure >= 70% and correlation >= 0.9)",
         inputs={}, summary=summary, kind="diagnostic",
-        chart={"type": "bars", "labels": ["exposure %", "corr x100"], "values": [numbers["exposure_pct"], round(100 * corr, 1)], "label": ""},
+        chart={},
     )
 
 

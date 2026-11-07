@@ -107,3 +107,40 @@ def test_agent_has_no_path_to_approval_or_vault():
     src = inspect.getsource(agent_mod)
     for forbidden in ("open_vault", "approve_spec", "VAULT_PASS", "GATE["):
         assert forbidden not in src
+
+
+def test_threaded_followup_falls_back_to_transcript(tmp_path):
+    q = {"mode": "questions", "questions": [{"id": "q1", "text": "How big a drop?", "options": ["5% over 24 bars"]}]}
+    ag, fake = agent(tmp_path, [json.dumps(q), ValueError("thread refused"), json.dumps(SPEC)])
+    first = ag.translate_hunch("s", "BTC bounces after a big drop")
+    out = ag.translate_hunch("s", "BTC bounces after a big drop", answers={"How big a drop?": "5% over 24 bars"},
+                             previous_id=first["interaction_id"])
+    assert "spec" in out and out["threaded"] is False
+    assert fake.calls[1]["previous"] == first["interaction_id"]  # tried the thread first
+    assert fake.calls[2]["previous"] is None and "<user_hunch>" in fake.calls[2]["input"]  # then the transcript
+    purposes = [e["payload"]["purpose"] for e in ag.ledger.entries("llm_call")]
+    assert purposes == ["translate_hunch", "translate_hunch", "translate_hunch_fallback"]
+
+
+class APITimeoutError(Exception):
+    pass
+
+
+def test_transport_timeout_retries_once_on_fresh_client(tmp_path):
+    fake = FakeLLM([APITimeoutError("stall"), json.dumps(SPEC)])
+    fake.resets = 0
+    fake.reset = lambda: setattr(fake, "resets", fake.resets + 1)
+    ag = Agent(Ledger(tmp_path / "l.jsonl"), client=fake)
+    out = ag.translate_hunch("s", "hunch")
+    assert "spec" in out and fake.resets == 1
+    tries = [e["payload"].get("transport_try") for e in ag.ledger.entries("llm_call") if not e["payload"]["ok"]]
+    assert tries == [1]
+
+
+def test_non_timeout_errors_are_not_retried(tmp_path):
+    fake = FakeLLM([PermissionError("bad key")])
+    fake.reset = lambda: None
+    ag = Agent(Ledger(tmp_path / "l.jsonl"), client=fake)
+    with pytest.raises(AgentCallError):
+        ag.translate_hunch("s", "hunch")
+    assert len(fake.calls) == 1

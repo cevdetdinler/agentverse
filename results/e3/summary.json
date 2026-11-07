@@ -1,0 +1,231 @@
+{
+ "tally": {
+  "naive_approved": 0,
+  "naive_approved_failed": 0,
+  "skeptic_rejected": 10,
+  "skeptic_rejected_failed": 5,
+  "skeptic_survived": 0,
+  "skeptic_survived_failed": 0,
+  "ran": 10,
+  "naive_winrate_approved": 6,
+  "naive_winrate_approved_failed": 3,
+  "hidden_significant_edge": 0,
+  "naive_winrate_approved_significant": 0,
+  "skeptic_rejected_significant": 0
+ },
+ "rows": [
+  {
+   "id": "H01",
+   "hunch": "Buy a 5% drop over 24 bars, hold 24 bars",
+   "fingerprint": "8fb4612aba806dd6683312cc067bd92be78853a28f771597cc8544ade1b06915",
+   "certified": "results/certified/8fb4612aba806dd6683312cc067bd92be78853a28f771597cc8544ade1b06915.json",
+   "naive": "REJECT",
+   "naive_mean_excess_bps": -44,
+   "practice_median_bps": 39,
+   "practice_sign_p": 0.11888633674819818,
+   "skeptic": "REJECTED",
+   "skeptic_stage": "practice",
+   "skeptic_failing": [
+    "A1: sign-test p = 0.1189 (needs < 0.05: 164 wins vs 136 losses could be chance).",
+    "A6: adjusted permutation p = 0.4416 after 1 try (needs < 0.05)."
+   ],
+   "vault_median_bps": null,
+   "vault_sign_p": null,
+   "naive_winrate": "APPROVE",
+   "practice_wins": 164
+  },
+  {
+   "id": "H02",
+   "hunch": "Buy when RSI(14) < 30, sell when RSI(14) > 50",
+   "fingerprint": "792b45796396e9db7acba9eb0915d9f0a8e8940da3a35e781770594f214d372b",
+   "certified": "results/certified/792b45796396e9db7acba9eb0915d9f0a8e8940da3a35e781770594f214d372b.json",
+   "naive": "REJECT",
+   "naive_mean_excess_bps": -106,
+   "practice_median_bps": 65,
+   "practice_sign_p": 0.32635399192504566,
+   "skeptic": "REJECTED",
+   "skeptic_stage": "practice",
+   "skeptic_failing": [
+    "A1: sign-test p = 0.3264 (needs < 0.05: 159 wins vs 141 losses could be chance).",
+    "A6: adjusted permutation p = 0.5774 after 1 try (needs < 0.05).",
+    "A4: median excess with costs x2 is -48 bps (needs > 0)."
+   ],
+   "vault_median_bps": null,
+   "vault_sign_p": null,
+   "naive_winrate": "APPROVE",
+   "practice_wins": 159
+  },
+  {
+   "id": "H03",
+   "hunch": "10/50 moving-average crossover",
+   "fingerprint": "65e6f5787cb6aa9a283379bb7e391b48951b41599586a038f8354f77c75fbf06",
+   "certified": "results/certified/65e6f5787cb6aa9a283379bb7e391b48951b41599586a038f8354f77c75fbf06.json",
+   "naive": "REJECT",
+   "naive_mean_excess_bps": -69,
+   "practice_median_bps": -35,
+   "practice_sign_p": 0.4529757149424968,
+   "skeptic": "REJECTED",
+   "skeptic_stage": "practice",
+   "skeptic_failing": [
+    "A1: median excess -35 bps (needs > 0); sign-test p = 0.4530 (needs < 0.05: 143 wins vs 157 losses could be chance).",
+    "A6: adjusted permutation p = 0.2328 after 1 try (needs < 0.05).",
+    "A4: median excess with costs x2 is -115 bps (needs > 0).",
+    "A3: 0.0% of 28 neighbouring rules were positive (needs at least 60%).",
+    "A5: without the best 15 paths the median is -81 bps (needs > 0)."
+   ],
+   "vault_median_bps": null,
+   "vault_sign_p": null,
+   "naive_winrate": "REJECT",
+   "practice_wins": 143
+  },
+  {
+   "id": "H04",
+   "hunch": "Breakout above the 48-bar high, hold 24 bars, 3% stop",
+   "fingerprint": "4f1fccac5c909cdc190aab6b04962aa343c19aeb93c3f4007731fec57e099972",
+   "certified": "results/certified/4f1fccac5c909cdc190aab6b04962aa343c19aeb93c3f4007731fec57e099972.json",
+   "naive": "REJECT",
+   "naive_mean_excess_bps": -78,
+   "practice_median_bps": -44,
+   "practice_sign_p": 0.38650982711273835,
+   "skeptic": "REJECTED",
+   "skeptic_stage": "practice",
+   "skeptic_failing": [
+    "A1: median excess -44 bps (needs > 0); sign-test p = 0.3865 (needs < 0.05: 142 wins vs 158 losses could be chance).",
+    "A6: adjusted permutation p = 0.4146 after 1 try (needs < 0.05).",
+    "A4: median excess with costs x2 is -97 bps (needs > 0).",
+    "A3: 0.0% of 22 neighbouring rules were positive (needs at least 60%).",
+    "A5: without the best 15 paths the median is -100 bps (needs > 0)."
+   ],
+   "vault_median_bps": null,
+   "vault_sign_p": null,
+   "naive_winrate": "REJECT",
+   "practice_wins": 142
+  },
+  {
+   "id": "H05",
+   "hunch": "Momentum: buy after +5% over 24 bars, hold 24 bars",
+   "fingerprint": "edf36b66dcd64abec109f31177268323b075209b11b780bc346a039b9ed47034",
+   "certified": "results/certified/edf36b66dcd64abec109f31177268323b075209b11b780bc346a039b9ed47034.json",
+   "naive": "REJECT",
+   "naive_mean_excess_bps": -43,
+   "practice_median_bps": -39,
+   "practice_sign_p": 0.32635399192504566,
+   "skeptic": "REJECTED",
+   "skeptic_stage": "practice",
+   "skeptic_failing": [
+    "A1: median excess -39 bps (needs > 0); sign-test p = 0.3264 (needs < 0.05: 141 wins vs 159 losses could be chance).",
+    "A6: adjusted permutation p = 0.2587 after 1 try (needs < 0.05).",
+    "A4: median excess with costs x2 is -77 bps (needs > 0).",
+    "A3: 18.2% of 22 neighbouring rules were positive (needs at least 60%).",
+    "A5: without the best 15 paths the median is -100 bps (needs > 0)."
+   ],
+   "vault_median_bps": null,
+   "vault_sign_p": null,
+   "naive_winrate": "REJECT",
+   "practice_wins": 141
+  },
+  {
+   "id": "H06",
+   "hunch": "Buy after 4 down bars in a row, hold 6 bars",
+   "fingerprint": "187fd46f8d5ce64176e14eb8dc4851b6ff85b7410d2f4d427f51846984fd80cc",
+   "certified": "results/certified/187fd46f8d5ce64176e14eb8dc4851b6ff85b7410d2f4d427f51846984fd80cc.json",
+   "naive": "REJECT",
+   "naive_mean_excess_bps": -100,
+   "practice_median_bps": -17,
+   "practice_sign_p": 0.8625270926954667,
+   "skeptic": "REJECTED",
+   "skeptic_stage": "practice",
+   "skeptic_failing": [
+    "A1: median excess -17 bps (needs > 0); sign-test p = 0.8625 (needs < 0.05: 148 wins vs 152 losses could be chance).",
+    "A6: adjusted permutation p = 0.0519 after 1 try (needs < 0.05).",
+    "A4: median excess with costs x2 is -110 bps (needs > 0).",
+    "A3: 40.0% of 10 neighbouring rules were positive (needs at least 60%).",
+    "A5: without the best 15 paths the median is -56 bps (needs > 0)."
+   ],
+   "vault_median_bps": null,
+   "vault_sign_p": null,
+   "naive_winrate": "REJECT",
+   "practice_wins": 148
+  },
+  {
+   "id": "H07",
+   "hunch": "Buy 3% below the 50-bar average, sell back at the average",
+   "fingerprint": "d21fbd0bb9f43b83776705559c45e03fae8b0e09b486a8399c15cdedc64bb919",
+   "certified": "results/certified/d21fbd0bb9f43b83776705559c45e03fae8b0e09b486a8399c15cdedc64bb919.json",
+   "naive": "REJECT",
+   "naive_mean_excess_bps": -28,
+   "practice_median_bps": 87,
+   "practice_sign_p": 0.09390370091881951,
+   "skeptic": "REJECTED",
+   "skeptic_stage": "practice",
+   "skeptic_failing": [
+    "A1: sign-test p = 0.0939 (needs < 0.05: 165 wins vs 135 losses could be chance).",
+    "A6: adjusted permutation p = 0.2657 after 1 try (needs < 0.05)."
+   ],
+   "vault_median_bps": null,
+   "vault_sign_p": null,
+   "naive_winrate": "APPROVE",
+   "practice_wins": 165
+  },
+  {
+   "id": "H08",
+   "hunch": "Trend filter: hold while above the 200-bar average",
+   "fingerprint": "ef0b36b74560451984d75c6db86a133e93304b35c1e0e54c69f422943d0617ac",
+   "certified": "results/certified/ef0b36b74560451984d75c6db86a133e93304b35c1e0e54c69f422943d0617ac.json",
+   "naive": "REJECT",
+   "naive_mean_excess_bps": -33,
+   "practice_median_bps": 45,
+   "practice_sign_p": 0.5254419954235527,
+   "skeptic": "REJECTED",
+   "skeptic_stage": "practice",
+   "skeptic_failing": [
+    "A1: sign-test p = 0.5254 (needs < 0.05: 156 wins vs 144 losses could be chance).",
+    "A6: adjusted permutation p = 0.8591 after 1 try (needs < 0.05).",
+    "A5: without the best 15 paths the median is -7 bps (needs > 0)."
+   ],
+   "vault_median_bps": null,
+   "vault_sign_p": null,
+   "naive_winrate": "APPROVE",
+   "practice_wins": 156
+  },
+  {
+   "id": "H09",
+   "hunch": "Buy a 3% dip over 6 bars, take +1.5% or exit after 12 bars",
+   "fingerprint": "582559088ecf4410d7e1ccfa6d95ba0f029672f03450cb83f4798435d9074843",
+   "certified": "results/certified/582559088ecf4410d7e1ccfa6d95ba0f029672f03450cb83f4798435d9074843.json",
+   "naive": "REJECT",
+   "naive_mean_excess_bps": -59,
+   "practice_median_bps": 92,
+   "practice_sign_p": 0.148792557741031,
+   "skeptic": "REJECTED",
+   "skeptic_stage": "practice",
+   "skeptic_failing": [
+    "A1: sign-test p = 0.1488 (needs < 0.05: 163 wins vs 137 losses could be chance)."
+   ],
+   "vault_median_bps": null,
+   "vault_sign_p": null,
+   "naive_winrate": "APPROVE",
+   "practice_wins": 163
+  },
+  {
+   "id": "H10",
+   "hunch": "Buy a 10% drawdown from the 72-bar high, hold 48 bars or +5%",
+   "fingerprint": "1736fc5d98e6ccbe18b30c3924dd1ea49605815d68e92af050f84d8f904fffec",
+   "certified": "results/certified/1736fc5d98e6ccbe18b30c3924dd1ea49605815d68e92af050f84d8f904fffec.json",
+   "naive": "REJECT",
+   "naive_mean_excess_bps": -38,
+   "practice_median_bps": 93,
+   "practice_sign_p": 0.18411657239198576,
+   "skeptic": "REJECTED",
+   "skeptic_stage": "practice",
+   "skeptic_failing": [
+    "A1: sign-test p = 0.1841 (needs < 0.05: 162 wins vs 138 losses could be chance).",
+    "A6: adjusted permutation p = 0.5425 after 1 try (needs < 0.05)."
+   ],
+   "vault_median_bps": null,
+   "vault_sign_p": null,
+   "naive_winrate": "APPROVE",
+   "practice_wins": 162
+  }
+ ]
+}

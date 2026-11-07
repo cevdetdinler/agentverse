@@ -733,6 +733,7 @@ async function onMedia(e) {
       ${out.claims.map((c) => `<div style="margin-top:6px">“${esc(c.quote)}” ${c.timestamp ? `<span class="mono small muted">@${esc(c.timestamp)}</span>` : ""}</div>`).join("")}
       <div class="small muted" style="margin-top:10px">Extracted hunch placed in the box above. You still approve the rule card.</div></div>`;
     accept(out.hunch);
+    $("#hunch").blur(); hide("#suggest");  // keep the extracted quotes visible
   } catch (err) { box.innerHTML = errorBox(err); }
   e.target.value = "";
 }

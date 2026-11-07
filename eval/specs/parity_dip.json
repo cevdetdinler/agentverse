@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "name": "Parity fixture: buy a 3% 12-bar dip, 5% stop, hold 24 bars",
+  "hunch_text": "Fixed spec used only for the E1 engine parity check",
+  "entry": {"all": [{"feature": "return", "lookback": 12, "op": "<=", "value": -0.03}]},
+  "exit": {"hold_bars": 24, "take_profit": null, "stop_loss": 0.05, "any": [{"feature": "rsi", "window": 14, "op": ">", "value": 70}]},
+  "cooldown_bars": 2,
+  "assumptions": ["1 bar treated as 1 hour"],
+  "parent_fingerprint": null,
+  "idea_id": "idea_parity"
+}

@@ -1,0 +1,16 @@
+# secrets
+.env
+# data: Binance Vision windows are CC BY-NC-SA and are never redistributed
+data/*
+!data/hunch_library.json
+# runtime
+logs/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+# the AgentVerse kit is dropped in locally, never committed
+agentverse/
+# kit run artefacts that embed price data: keep only REPORT.md, summary.json, COMMITMENT/SEED files
+results/**/case-results.jsonl
+results/**/predictions.jsonl

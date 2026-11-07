@@ -1,0 +1,20 @@
+{
+  "spec_fingerprint": "ddd568044b10291e55386012d0c34c489fd19bf8314b63ac2b252682bc999c14",
+  "cases_compared": 300,
+  "identical": 300,
+  "mismatches": [],
+  "checked_fields": [
+    "final_cash_pence",
+    "max_drawdown_bps"
+  ],
+  "aggregate_stats_identical": true,
+  "aggregate_stats": {
+    "wins_vs_buy_and_hold": 160,
+    "losses_vs_buy_and_hold": 140,
+    "ties": 0,
+    "median_excess_vs_buy_and_hold_bps_of_capital": 59,
+    "mean_max_drawdown_bps": 672,
+    "sign_test_p_value": 0.27262991270081693
+  },
+  "aggregate_diffs": {}
+}

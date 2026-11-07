@@ -6,13 +6,13 @@ Each entry records what the spec said, what we did instead, why, and the evidenc
 
 **Spec §6 A2:** keep the same number of trades and the same holding lengths, place the entries at random bars on each path, and compare.
 
-**Problem we measured:** on synthetic random walks with no edge (100 random rule cards × 100 paths, K = 200), the in-path random-entry permutation gave **p < 0.05 for 22.5% of rules** (expected 5%). It is biased in favour of mean-reversion ("buy the dip") rules.
+**Problem we measured:** on synthetic random walks with no edge (40 random rule cards × 150 paths, K = 200), the in-path random-entry permutation gave **p < 0.05 for 9 of 40 rules (22.5%)** (expected 5%). It is biased in favour of mean-reversion ("buy the dip") rules.
 
 The cause is that it compares entries *within the same realised path*. The start and end prices are fixed (a random-walk bridge), so after a drop the rest of the path must, on average, climb back to the fixed end price. Dip-buying entries therefore beat random entries even when there is nothing to find. On real data this bias would wave through exactly the hunches Skeptic exists to challenge.
 
 **What we do instead:** for each practice path we build K surrogate paths from the path's own one-bar log returns in random order. Each surrogate has the same start price, the same end price (up to integer rounding), and the same moves and volatility, but no information in the order of moves. We run the **exact same rule** on every surrogate with the same engine and costs, then compute p_perm = (1 + #{surrogate mean excess ≥ observed}) / (1 + K). Under the null ("the rule's timing carries no information"), the real path is exchangeable with its surrogates, so the test is valid.
 
-**Evidence:** on the same kind of null data, the share of rules with p < 0.05 is **6%** and with p < 0.10 it is **12%** (100 rules; `tests/test_attacks.py::test_shuffled_test_is_calibrated_on_null_data` guards it). On real practice data, the E1 parity rule's p moved from 0.004 (old test, misleading) to 0.32 (new test).
+**Evidence:** on the same kind of null data (100 random rule cards × 100 paths, K = 200), the share of rules with p < 0.05 is **6%** and with p < 0.10 it is **12%** ( `tests/test_attacks.py::test_shuffled_test_is_calibrated_on_null_data` guards it). On real practice data, the E1 parity rule's p moved from 0.004 (old test, misleading) to 0.32 (new test).
 
 **Limits:** shuffling also destroys volatility clustering, so a rule that exploits volatility regimes (not direction) can look significant. A6 still applies the Bonferroni trial count to this p_perm. A future refinement is a block shuffle.
 

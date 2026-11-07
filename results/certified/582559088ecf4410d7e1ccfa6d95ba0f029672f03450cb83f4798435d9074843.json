@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "name": "Buy a 3% dip over 6 bars, take +1.5% or exit after 12 bars",
+  "hunch_text": "Buy a 3% dip over 6 bars, take +1.5% or exit after 12 bars",
+  "entry": {
+    "all": [
+      {
+        "feature": "return",
+        "op": "<=",
+        "value": -0.03,
+        "lookback": 6,
+        "window": null,
+        "fast": null,
+        "slow": null
+      }
+    ]
+  },
+  "exit": {
+    "hold_bars": 12,
+    "take_profit": 0.015,
+    "stop_loss": null,
+    "any": []
+  },
+  "cooldown_bars": 0,
+  "assumptions": [
+    "1 bar treated as 1 hour (test data is 1h or 4h bars; the interval is hidden)"
+  ],
+  "parent_fingerprint": null,
+  "idea_id": "idea_e0f77090"
+}

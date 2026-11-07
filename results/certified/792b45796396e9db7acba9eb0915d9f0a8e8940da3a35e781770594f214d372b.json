@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "name": "Buy when RSI(14) < 30, sell when RSI(14) > 50",
+  "hunch_text": "Buy when RSI(14) < 30, sell when RSI(14) > 50",
+  "entry": {
+    "all": [
+      {
+        "feature": "rsi",
+        "op": "<",
+        "value": 30.0,
+        "lookback": null,
+        "window": 14,
+        "fast": null,
+        "slow": null
+      }
+    ]
+  },
+  "exit": {
+    "hold_bars": null,
+    "take_profit": null,
+    "stop_loss": null,
+    "any": [
+      {
+        "feature": "rsi",
+        "op": ">",
+        "value": 50.0,
+        "lookback": null,
+        "window": 14,
+        "fast": null,
+        "slow": null
+      }
+    ]
+  },
+  "cooldown_bars": 0,
+  "assumptions": [
+    "1 bar treated as 1 hour (test data is 1h or 4h bars; the interval is hidden)"
+  ],
+  "parent_fingerprint": null,
+  "idea_id": "idea_8a0e27f1"
+}

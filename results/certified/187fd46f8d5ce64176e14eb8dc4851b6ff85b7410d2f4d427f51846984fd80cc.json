@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "name": "Buy after 4 down bars in a row, hold 6 bars",
+  "hunch_text": "Buy after 4 down bars in a row, hold 6 bars",
+  "entry": {
+    "all": [
+      {
+        "feature": "down_streak",
+        "op": ">=",
+        "value": 4.0,
+        "lookback": null,
+        "window": null,
+        "fast": null,
+        "slow": null
+      }
+    ]
+  },
+  "exit": {
+    "hold_bars": 6,
+    "take_profit": null,
+    "stop_loss": null,
+    "any": []
+  },
+  "cooldown_bars": 0,
+  "assumptions": [
+    "1 bar treated as 1 hour (test data is 1h or 4h bars; the interval is hidden)"
+  ],
+  "parent_fingerprint": null,
+  "idea_id": "idea_b067d1ea"
+}

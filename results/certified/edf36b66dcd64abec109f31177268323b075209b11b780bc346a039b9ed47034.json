@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "name": "Momentum: buy after +5% over 24 bars, hold 24 bars",
+  "hunch_text": "Momentum: buy after +5% over 24 bars, hold 24 bars",
+  "entry": {
+    "all": [
+      {
+        "feature": "return",
+        "op": ">=",
+        "value": 0.05,
+        "lookback": 24,
+        "window": null,
+        "fast": null,
+        "slow": null
+      }
+    ]
+  },
+  "exit": {
+    "hold_bars": 24,
+    "take_profit": null,
+    "stop_loss": null,
+    "any": []
+  },
+  "cooldown_bars": 0,
+  "assumptions": [
+    "1 bar treated as 1 hour (test data is 1h or 4h bars; the interval is hidden)"
+  ],
+  "parent_fingerprint": null,
+  "idea_id": "idea_5fa55ba8"
+}

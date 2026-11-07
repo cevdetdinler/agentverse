@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "name": "Breakout above the 48-bar high, hold 24 bars, 3% stop",
+  "hunch_text": "Breakout above the 48-bar high, hold 24 bars, 3% stop",
+  "entry": {
+    "all": [
+      {
+        "feature": "breakout",
+        "op": ">",
+        "value": 0.0,
+        "lookback": 48,
+        "window": null,
+        "fast": null,
+        "slow": null
+      }
+    ]
+  },
+  "exit": {
+    "hold_bars": 24,
+    "take_profit": null,
+    "stop_loss": 0.03,
+    "any": []
+  },
+  "cooldown_bars": 0,
+  "assumptions": [
+    "1 bar treated as 1 hour (test data is 1h or 4h bars; the interval is hidden)"
+  ],
+  "parent_fingerprint": null,
+  "idea_id": "idea_2c8a0c79"
+}

@@ -1,0 +1,1414 @@
+{
+ "model": "gemini-4-argon",
+ "label": "SELF-ASSESSMENT",
+ "unambiguous": 30,
+ "ambiguous": 10,
+ "spec_returned": 26,
+ "asked_on_unambiguous": 0,
+ "errors": 4,
+ "field_accuracy_strict": [
+  58,
+  61
+ ],
+ "field_accuracy_op_lenient": [
+  58,
+  61
+ ],
+ "card_exact_strict": 24,
+ "card_exact_op_lenient": 24,
+ "asked_on_ambiguous": 10,
+ "rows": [
+  {
+   "id": "G01",
+   "hunch": "Buy when the price falls 5% or more over 24 bars; sell after holding 24 bars.",
+   "outcome": "spec",
+   "strict": {
+    "fields": 2,
+    "hits": 2,
+    "exact": true
+   },
+   "lenient": {
+    "fields": 2,
+    "hits": 2,
+    "exact": true
+   },
+   "spec": {
+    "entry": {
+     "all": [
+      {
+       "feature": "return",
+       "op": "<=",
+       "value": -0.05,
+       "lookback": 24,
+       "window": null,
+       "fast": null,
+       "slow": null
+      }
+     ]
+    },
+    "exit": {
+     "hold_bars": 24,
+     "take_profit": null,
+     "stop_loss": null,
+     "any": []
+    },
+    "cooldown_bars": 0
+   },
+   "interaction_id": "v1_ChdGV1B2YXFTcUk0LWV2ZElQaTkybDRRMBIXRldQdmFxU3FJNC1ldmRJUGk5Mmw0UTA"
+  },
+  {
+   "id": "G02",
+   "hunch": "Buy when the 12-bar return is below -3%; exit after 12 bars.",
+   "outcome": "spec",
+   "strict": {
+    "fields": 2,
+    "hits": 2,
+    "exact": true
+   },
+   "lenient": {
+    "fields": 2,
+    "hits": 2,
+    "exact": true
+   },
+   "spec": {
+    "entry": {
+     "all": [
+      {
+       "feature": "return",
+       "op": "<",
+       "value": -0.03,
+       "lookback": 12,
+       "window": null,
+       "fast": null,
+       "slow": null
+      }
+     ]
+    },
+    "exit": {
+     "hold_bars": 12,
+     "take_profit": null,
+     "stop_loss": null,
+     "any": []
+    },
+    "cooldown_bars": 0
+   },
+   "interaction_id": "v1_ChdGV1B2YW8tbEk5dm52ZElQanRQWnlBYxIXRldQdmFvLWxJOXZudmRJUGp0UFp5QWM"
+  },
+  {
+   "id": "G03",
+   "hunch": "Buy when the 48-bar return is at least +8%; hold for 48 bars.",
+   "outcome": "spec",
+   "strict": {
+    "fields": 2,
+    "hits": 2,
+    "exact": true
+   },
+   "lenient": {
+    "fields": 2,
+    "hits": 2,
+    "exact": true
+   },
+   "spec": {
+    "entry": {
+     "all": [
+      {
+       "feature": "return",
+       "op": ">=",
+       "value": 0.08,
+       "lookback": 48,
+       "window": null,
+       "fast": null,
+       "slow": null
+      }
+     ]
+    },
+    "exit": {
+     "hold_bars": 48,
+     "take_profit": null,
+     "stop_loss": null,
+     "any": []
+    },
+    "cooldown_bars": 0
+   },
+   "interaction_id": "v1_ChdGV1B2YXRYdkd1Q0c3TThQMm9TV2tBdxIXRldQdmF0WHZHdUNHN004UDJvU1drQXc"
+  },
+  {
+   "id": "G04",
+   "hunch": "Buy when RSI over 14 bars is below 30; sell when RSI(14) goes above 50.",
+   "outcome": "spec",
+   "strict": {
+    "fields": 2,
+    "hits": 2,
+    "exact": true
+   },
+   "lenient": {
+    "fields": 2,
+    "hits": 2,
+    "exact": true
+   },
+   "spec": {
+    "entry": {
+     "all": [
+      {
+       "feature": "rsi",
+       "op": "<",
+       "value": 30.0,
+       "lookback": null,
+       "window": 14,
+       "fast": null,
+       "slow": null
+      }
+     ]
+    },
+    "exit": {
+     "hold_bars": null,
+     "take_profit": null,
+     "stop_loss": null,
+     "any": [
+      {
+       "feature": "rsi",
+       "op": ">",
+       "value": 50.0,
+       "lookback": null,
+       "window": 14,
+       "fast": null,
+       "slow": null
+      }
+     ]
+    },
+    "cooldown_bars": 0
+   },
+   "interaction_id": "v1_ChdGV1B2YXAzNEd2RGF4czBQcHJmV29RRRIXRldQdmFwMzRHdkRheHMwUHByZldvUUU"
+  },
+  {
+   "id": "G05",
+   "hunch": "Buy when 7-bar RSI drops under 20; exit after 10 bars.",
+   "outcome": "spec",
+   "strict": {
+    "fields": 2,
+    "hits": 2,
+    "exact": true
+   },
+   "lenient": {
+    "fields": 2,
+    "hits": 2,
+    "exact": true
+   },
+   "spec": {
+    "entry": {
+     "all": [
+      {
+       "feature": "rsi",
+       "op": "<",
+       "value": 20.0,
+       "lookback": null,
+       "window": 7,
+       "fast": null,
+       "slow": null
+      }
+     ]
+    },
+    "exit": {
+     "hold_bars": 10,
+     "take_profit": null,
+     "stop_loss": null,
+     "any": []
+    },
+    "cooldown_bars": 0
+   },
+   "interaction_id": "v1_ChdGV1B2YW91U0k5UzBuc0VQdHRyYXNRdxIXRldQdmFvdVNJOVMwbnNFUHR0cmFzUXc"
+  },
+  {
+   "id": "G06",
+   "hunch": "Buy when RSI(21) crosses above 50; sell when RSI(21) crosses below 50.",
+   "outcome": "spec",
+   "strict": {
+    "fields": 2,
+    "hits": 2,
+    "exact": true
+   },
+   "lenient": {
+    "fields": 2,
+    "hits": 2,
+    "exact": true
+   },
+   "spec": {
+    "entry": {
+     "all": [
+      {
+       "feature": "rsi",
+       "op": "crosses_above",
+       "value": 50.0,
+       "lookback": null,
+       "window": 21,
+       "fast": null,
+       "slow": null
+      }
+     ]
+    },
+    "exit": {
+     "hold_bars": null,
+     "take_profit": null,
+     "stop_loss": null,
+     "any": [
+      {
+       "feature": "rsi",
+       "op": "crosses_below",
+       "value": 50.0,
+       "lookback": null,
+       "window": 21,
+       "fast": null,
+       "slow": null
+      }
+     ]
+    },
+    "cooldown_bars": 0
+   },
+   "interaction_id": "v1_ChdHMlB2YXNtUUlLdm52ZElQeGNhdzhBZxIXRzJQdmFzbVFJS3ZudmRJUHhjYXc4QWc"
+  },
+  {
+   "id": "G07",
+   "hunch": "Buy when the 10-bar SMA crosses above the 50-bar SMA; sell when it crosses back below.",
+   "outcome": "spec",
+   "strict": {
+    "fields": 2,
+    "hits": 2,
+    "exact": true
+   },
+   "lenient": {
+    "fields": 2,
+    "hits": 2,
+    "exact": true
+   },
+   "spec": {
+    "entry": {
+     "all": [
+      {
+       "feature": "sma_ratio",
+       "op": "crosses_above",
+       "value": 0.0,
+       "lookback": null,
+       "window": null,
+       "fast": 10,
+       "slow": 50
+      }
+     ]
+    },
+    "exit": {
+     "hold_bars": null,
+     "take_profit": null,
+     "stop_loss": null,
+     "any": [
+      {
+       "feature": "sma_ratio",
+       "op": "crosses_below",
+       "value": 0.0,
+       "lookback": null,
+       "window": null,
+       "fast": 10,
+       "slow": 50
+      }
+     ]
+    },
+    "cooldown_bars": 0
+   },
+   "interaction_id": "v1_ChdIbVB2YXZueUEtemhuc0VQLWFXWHVBdxIXSG1QdmF2bnlBLXpobnNFUC1hV1h1QXc"
+  },
+  {
+   "id": "G08",
+   "hunch": "Buy when the 20-bar average is more than 2% above the 100-bar average; hold 24 bars.",
+   "outcome": "spec",
+   "strict": {
+    "fields": 2,
+    "hits": 2,
+    "exact": true
+   },
+   "lenient": {
+    "fields": 2,
+    "hits": 2,
+    "exact": true
+   },
+   "spec": {
+    "entry": {
+     "all": [
+      {
+       "feature": "sma_ratio",
+       "op": ">",
+       "value": 0.02,
+       "lookback": null,
+       "window": null,
+       "fast": 20,
+       "slow": 100
+      }
+     ]
+    },
+    "exit": {
+     "hold_bars": 24,
+     "take_profit": null,
+     "stop_loss": null,
+     "any": []
+    },
+    "cooldown_bars": 0
+   },
+   "interaction_id": "v1_ChdIbVB2YXB5SUg4NnYzYm9QLTlhaWlROBIXSG1QdmFweUlIODZ2M2JvUC05YWlpUTg"
+  },
+  {
+   "id": "G09",
+   "hunch": "Buy when price is at least 3% below its 50-bar moving average; sell when price is back above the 50-bar average.",
+   "outcome": "spec",
+   "strict": {
+    "fields": 2,
+    "hits": 2,
+    "exact": true
+   },
+   "lenient": {
+    "fields": 2,
+    "hits": 2,
+    "exact": true
+   },
+   "spec": {
+    "entry": {
+     "all": [
+      {
+       "feature": "price_vs_sma",
+       "op": "<=",
+       "value": -0.03,
+       "lookback": null,
+       "window": 50,
+       "fast": null,
+       "slow": null
+      }
+     ]
+    },
+    "exit": {
+     "hold_bars": null,
+     "take_profit": null,
+     "stop_loss": null,
+     "any": [
+      {
+       "feature": "price_vs_sma",
+       "op": ">",
+       "value": 0.0,
+       "lookback": null,
+       "window": 50,
+       "fast": null,
+       "slow": null
+      }
+     ]
+    },
+    "cooldown_bars": 0
+   },
+   "interaction_id": "v1_ChdIMlB2YXRha0lmcXp2ZElQbDhHeWdRTRIXSDJQdmF0YWtJZnF6dmRJUGw4R3lnUU0"
+  },
+  {
+   "id": "G10",
+   "hunch": "Buy when price closes above its 200-bar moving average; sell when it closes below it.",
+   "outcome": "spec",
+   "strict": {
+    "fields": 2,
+    "hits": 2,
+    "exact": true
+   },
+   "lenient": {
+    "fields": 2,
+    "hits": 2,
+    "exact": true
+   },
+   "spec": {
+    "entry": {
+     "all": [
+      {
+       "feature": "price_vs_sma",
+       "op": ">",
+       "value": 0.0,
+       "lookback": null,
+       "window": 200,
+       "fast": null,
+       "slow": null
+      }
+     ]
+    },
+    "exit": {
+     "hold_bars": null,
+     "take_profit": null,
+     "stop_loss": null,
+     "any": [
+      {
+       "feature": "price_vs_sma",
+       "op": "<",
+       "value": 0.0,
+       "lookback": null,
+       "window": 200,
+       "fast": null,
+       "slow": null
+      }
+     ]
+    },
+    "cooldown_bars": 0
+   },
+   "interaction_id": "v1_ChZIMlB2YW9Tcks0ZTJ2ZElQbk9lX1lREhZIMlB2YW9Tcks0ZTJ2ZElQbk9lX1lR"
+  },
+  {
+   "id": "G11",
+   "hunch": "Buy when price is 10% or more below the highest close of the last 72 bars; hold 48 bars.",
+   "outcome": "spec",
+   "strict": {
+    "fields": 2,
+    "hits": 2,
+    "exact": true
+   },
+   "lenient": {
+    "fields": 2,
+    "hits": 2,
+    "exact": true
+   },
+   "spec": {
+    "entry": {
+     "all": [
+      {
+       "feature": "drawdown_from_high",
+       "op": "<=",
+       "value": -0.1,
+       "lookback": 72,
+       "window": null,
+       "fast": null,
+       "slow": null
+      }
+     ]
+    },
+    "exit": {
+     "hold_bars": 48,
+     "take_profit": null,
+     "stop_loss": null,
+     "any": []
+    },
+    "cooldown_bars": 0
+   },
+   "interaction_id": "v1_ChdJbVB2YXN5RE1wN3FrZFVQcFlTQmtBdxIXSW1QdmFzeURNcDdxa2RVUHBZU0JrQXc"
+  },
+  {
+   "id": "G12",
+   "hunch": "Buy after a 15% drawdown from the 168-bar high; take profit at +6% or stop out at -4%.",
+   "outcome": "spec",
+   "strict": {
+    "fields": 3,
+    "hits": 2,
+    "exact": false
+   },
+   "lenient": {
+    "fields": 3,
+    "hits": 2,
+    "exact": false
+   },
+   "spec": {
+    "entry": {
+     "all": [
+      {
+       "feature": "drawdown_from_high",
+       "op": "<=",
+       "value": -0.15,
+       "lookback": 168,
+       "window": null,
+       "fast": null,
+       "slow": null
+      }
+     ]
+    },
+    "exit": {
+     "hold_bars": null,
+     "take_profit": 0.06,
+     "stop_loss": null,
+     "any": []
+    },
+    "cooldown_bars": 0
+   },
+   "interaction_id": "v1_ChdRMlB2YXNtWk9ObnJrZFVQdHYyLTRBMBIXUTJQdmFzbVpPTm5ya2RVUHR2Mi00QTA"
+  },
+  {
+   "id": "G13",
+   "hunch": "Buy when price is up 8% or more from its lowest close in the last 48 bars; hold 24 bars.",
+   "outcome": "spec",
+   "strict": {
+    "fields": 2,
+    "hits": 2,
+    "exact": true
+   },
+   "lenient": {
+    "fields": 2,
+    "hits": 2,
+    "exact": true
+   },
+   "spec": {
+    "entry": {
+     "all": [
+      {
+       "feature": "rise_from_low",
+       "op": ">=",
+       "value": 0.08,
+       "lookback": 48,
+       "window": null,
+       "fast": null,
+       "slow": null
+      }
+     ]
+    },
+    "exit": {
+     "hold_bars": 24,
+     "take_profit": null,
+     "stop_loss": null,
+     "any": []
+    },
+    "cooldown_bars": 0
+   },
+   "interaction_id": "v1_ChdKV1B2YXNXWkxJbTR2ZElQdjZybzBRSRIXSldQdmFzV1pMSW00dmRJUHY2cm8wUUk"
+  },
+  {
+   "id": "G14",
+   "hunch": "Buy when the close breaks above the highest close of the previous 48 bars; hold 24 bars with a 3% stop-loss.",
+   "outcome": "spec",
+   "strict": {
+    "fields": 3,
+    "hits": 3,
+    "exact": true
+   },
+   "lenient": {
+    "fields": 3,
+    "hits": 3,
+    "exact": true
+   },
+   "spec": {
+    "entry": {
+     "all": [
+      {
+       "feature": "breakout",
+       "op": ">",
+       "value": 0.0,
+       "lookback": 48,
+       "window": null,
+       "fast": null,
+       "slow": null
+      }
+     ]
+    },
+    "exit": {
+     "hold_bars": 24,
+     "take_profit": null,
+     "stop_loss": 0.03,
+     "any": []
+    },
+    "cooldown_bars": 0
+   },
+   "interaction_id": "v1_ChdKbVB2YXR5Tk1fT0d2ZElQbklIbTRROBIXSm1QdmF0eU5NX09HdmRJUG5JSG00UTg"
+  },
+  {
+   "id": "G15",
+   "hunch": "Buy a breakout at least 1% above the prior 24-bar high; exit after 12 bars.",
+   "outcome": "spec",
+   "strict": {
+    "fields": 2,
+    "hits": 2,
+    "exact": true
+   },
+   "lenient": {
+    "fields": 2,
+    "hits": 2,
+    "exact": true
+   },
+   "spec": {
+    "entry": {
+     "all": [
+      {
+       "feature": "breakout",
+       "op": ">=",
+       "value": 0.01,
+       "lookback": 24,
+       "window": null,
+       "fast": null,
+       "slow": null
+      }
+     ]
+    },
+    "exit": {
+     "hold_bars": 12,
+     "take_profit": null,
+     "stop_loss": null,
+     "any": []
+    },
+    "cooldown_bars": 0
+   },
+   "interaction_id": "v1_ChZLV1B2YXRuMVBNS0R4czBQLU5XU2FBEhZLV1B2YXRuMVBNS0R4czBQLU5XU2FB"
+  },
+  {
+   "id": "G16",
+   "hunch": "Buy when 24-bar volatility of returns is below 0.5%; hold 24 bars.",
+   "outcome": "spec",
+   "strict": {
+    "fields": 2,
+    "hits": 2,
+    "exact": true
+   },
+   "lenient": {
+    "fields": 2,
+    "hits": 2,
+    "exact": true
+   },
+   "spec": {
+    "entry": {
+     "all": [
+      {
+       "feature": "volatility",
+       "op": "<",
+       "value": 0.005,
+       "lookback": 24,
+       "window": null,
+       "fast": null,
+       "slow": null
+      }
+     ]
+    },
+    "exit": {
+     "hold_bars": 24,
+     "take_profit": null,
+     "stop_loss": null,
+     "any": []
+    },
+    "cooldown_bars": 0
+   },
+   "interaction_id": "v1_ChdMV1B2YXJ2OUNvclB2ZElQb2YzUnlRRRIXTFdQdmFydjlDb3JQdmRJUG9mM1J5UUU"
+  },
+  {
+   "id": "G17",
+   "hunch": "Buy when 12-bar volatility is above 1.5%; sell after 6 bars.",
+   "outcome": "spec",
+   "strict": {
+    "fields": 2,
+    "hits": 2,
+    "exact": true
+   },
+   "lenient": {
+    "fields": 2,
+    "hits": 2,
+    "exact": true
+   },
+   "spec": {
+    "entry": {
+     "all": [
+      {
+       "feature": "volatility",
+       "op": ">",
+       "value": 0.015,
+       "lookback": 12,
+       "window": null,
+       "fast": null,
+       "slow": null
+      }
+     ]
+    },
+    "exit": {
+     "hold_bars": 6,
+     "take_profit": null,
+     "stop_loss": null,
+     "any": []
+    },
+    "cooldown_bars": 0
+   },
+   "interaction_id": "v1_ChdMbVB2YXZIM0hzT0UyOG9QcXJHRDRRSRIXTG1QdmF2SDNIc09FMjhvUHFyR0Q0UUk"
+  },
+  {
+   "id": "G18",
+   "hunch": "Buy after 4 consecutive down closes; hold for 6 bars.",
+   "outcome": "spec",
+   "strict": {
+    "fields": 2,
+    "hits": 2,
+    "exact": true
+   },
+   "lenient": {
+    "fields": 2,
+    "hits": 2,
+    "exact": true
+   },
+   "spec": {
+    "entry": {
+     "all": [
+      {
+       "feature": "down_streak",
+       "op": ">=",
+       "value": 4.0,
+       "lookback": null,
+       "window": null,
+       "fast": null,
+       "slow": null
+      }
+     ]
+    },
+    "exit": {
+     "hold_bars": 6,
+     "take_profit": null,
+     "stop_loss": null,
+     "any": []
+    },
+    "cooldown_bars": 0
+   },
+   "interaction_id": "v1_ChdNV1B2YXRxdkFjcVAyOG9QaHNpRGtRRRIXTVdQdmF0cXZBY3FQMjhvUGhzaURrUUU"
+  },
+  {
+   "id": "G19",
+   "hunch": "Buy after 5 down bars in a row; take profit at +2% or exit after 12 bars.",
+   "outcome": "spec",
+   "strict": {
+    "fields": 3,
+    "hits": 3,
+    "exact": true
+   },
+   "lenient": {
+    "fields": 3,
+    "hits": 3,
+    "exact": true
+   },
+   "spec": {
+    "entry": {
+     "all": [
+      {
+       "feature": "down_streak",
+       "op": ">=",
+       "value": 5.0,
+       "lookback": null,
+       "window": null,
+       "fast": null,
+       "slow": null
+      }
+     ]
+    },
+    "exit": {
+     "hold_bars": 12,
+     "take_profit": 0.02,
+     "stop_loss": null,
+     "any": []
+    },
+    "cooldown_bars": 0
+   },
+   "interaction_id": "v1_ChdNV1B2YXFuYU80djh2ZElQbzR1Ym9RTRIXTVdQdmFxbmFPNHY4dmRJUG80dWJvUU0"
+  },
+  {
+   "id": "G20",
+   "hunch": "Buy when the 6-bar return is -3% or worse; take profit at +1.5% or exit after 12 bars.",
+   "outcome": "spec",
+   "strict": {
+    "fields": 3,
+    "hits": 3,
+    "exact": true
+   },
+   "lenient": {
+    "fields": 3,
+    "hits": 3,
+    "exact": true
+   },
+   "spec": {
+    "entry": {
+     "all": [
+      {
+       "feature": "return",
+       "op": "<=",
+       "value": -0.03,
+       "lookback": 6,
+       "window": null,
+       "fast": null,
+       "slow": null
+      }
+     ]
+    },
+    "exit": {
+     "hold_bars": 12,
+     "take_profit": 0.015,
+     "stop_loss": null,
+     "any": []
+    },
+    "cooldown_bars": 0
+   },
+   "interaction_id": "v1_ChdNMlB2YXFPcU05X3l2ZElQMDhybTBBSRIXTTJQdmFxT3FNOV95dmRJUDA4cm0wQUk"
+  },
+  {
+   "id": "G21",
+   "hunch": "Buy when the 24-bar return is below -8%; exit at +4% or after 72 bars; wait 24 bars before re-entering.",
+   "outcome": "error",
+   "detail": "AgentCallError: translate_hunch: model call failed (APIConnectionError)"
+  },
+  {
+   "id": "G22",
+   "hunch": "Buy when RSI(14) is under 35 and price is above its 200-bar average; hold 24 bars.",
+   "outcome": "spec",
+   "strict": {
+    "fields": 3,
+    "hits": 3,
+    "exact": true
+   },
+   "lenient": {
+    "fields": 3,
+    "hits": 3,
+    "exact": true
+   },
+   "spec": {
+    "entry": {
+     "all": [
+      {
+       "feature": "rsi",
+       "op": "<",
+       "value": 35.0,
+       "lookback": null,
+       "window": 14,
+       "fast": null,
+       "slow": null
+      },
+      {
+       "feature": "price_vs_sma",
+       "op": ">",
+       "value": 0.0,
+       "lookback": null,
+       "window": 200,
+       "fast": null,
+       "slow": null
+      }
+     ]
+    },
+    "exit": {
+     "hold_bars": 24,
+     "take_profit": null,
+     "stop_loss": null,
+     "any": []
+    },
+    "cooldown_bars": 0
+   },
+   "interaction_id": "v1_ChdPV1B2YXJ6WUE1MkNrZFVQeUpUdWdRNBIXT1dQdmFyellBNTJDa2RVUHlKVHVnUTQ"
+  },
+  {
+   "id": "G23",
+   "hunch": "Buy a 5% drop over 24 bars only if the 50-bar average is above the 200-bar average; hold 48 bars.",
+   "outcome": "error",
+   "detail": "AgentCallError: translate_hunch: model call failed (APIConnectionError)"
+  },
+  {
+   "id": "G24",
+   "hunch": "Buy when 24-bar volatility is under 0.6% and price is above its 50-bar average; exit after 24 bars or at a 2% stop.",
+   "outcome": "error",
+   "detail": "AgentCallError: translate_hunch: model call failed (APIConnectionError)"
+  },
+  {
+   "id": "G25",
+   "hunch": "Buy when the 12-bar return is above +3%; sell when the 12-bar return turns negative.",
+   "outcome": "error",
+   "detail": "AgentCallError: translate_hunch: model call failed (APIConnectionError)"
+  },
+  {
+   "id": "G26",
+   "hunch": "Buy when price is 2% above its 20-bar average; sell when it falls back below the 20-bar average.",
+   "outcome": "spec",
+   "strict": {
+    "fields": 2,
+    "hits": 2,
+    "exact": true
+   },
+   "lenient": {
+    "fields": 2,
+    "hits": 2,
+    "exact": true
+   },
+   "spec": {
+    "entry": {
+     "all": [
+      {
+       "feature": "price_vs_sma",
+       "op": ">=",
+       "value": 0.02,
+       "lookback": null,
+       "window": 20,
+       "fast": null,
+       "slow": null
+      }
+     ]
+    },
+    "exit": {
+     "hold_bars": null,
+     "take_profit": null,
+     "stop_loss": null,
+     "any": [
+      {
+       "feature": "price_vs_sma",
+       "op": "<",
+       "value": 0.0,
+       "lookback": null,
+       "window": 20,
+       "fast": null,
+       "slow": null
+      }
+     ]
+    },
+    "cooldown_bars": 0
+   },
+   "interaction_id": "v1_ChdSR1B2YXRhN0JvTE1rZFVQck9Mb2tBdxIXUkdQdmF0YTdCb0xNa2RVUHJPTG9rQXc"
+  },
+  {
+   "id": "G27",
+   "hunch": "Buy after a 2% one-bar drop; sell after 3 bars.",
+   "outcome": "spec",
+   "strict": {
+    "fields": 4,
+    "hits": 2,
+    "exact": false
+   },
+   "lenient": {
+    "fields": 4,
+    "hits": 2,
+    "exact": false
+   },
+   "spec": {
+    "entry": {
+     "all": [
+      {
+       "feature": "return",
+       "op": "<=",
+       "value": -0.02,
+       "lookback": 1,
+       "window": null,
+       "fast": null,
+       "slow": null
+      }
+     ]
+    },
+    "exit": {
+     "hold_bars": 3,
+     "take_profit": 0.05,
+     "stop_loss": 0.05,
+     "any": []
+    },
+    "cooldown_bars": 0
+   },
+   "interaction_id": "v1_ChdRMlB2YXRmYU9LV0p2ZElQODlhRnNBNBIXUTJQdmF0ZmFPS1dKdmRJUDg5YUZzQTQ"
+  },
+  {
+   "id": "G28",
+   "hunch": "Buy when the 5-bar SMA crosses above the 20-bar SMA; hold 12 bars.",
+   "outcome": "spec",
+   "strict": {
+    "fields": 2,
+    "hits": 2,
+    "exact": true
+   },
+   "lenient": {
+    "fields": 2,
+    "hits": 2,
+    "exact": true
+   },
+   "spec": {
+    "entry": {
+     "all": [
+      {
+       "feature": "sma_ratio",
+       "op": "crosses_above",
+       "value": 0.0,
+       "lookback": null,
+       "window": null,
+       "fast": 5,
+       "slow": 20
+      }
+     ]
+    },
+    "exit": {
+     "hold_bars": 12,
+     "take_profit": null,
+     "stop_loss": null,
+     "any": []
+    },
+    "cooldown_bars": 0
+   },
+   "interaction_id": "v1_ChZSR1B2YXJsZ2dfMmV3US1MOXNUUkRREhZSR1B2YXJsZ2dfMmV3US1MOXNUUkRR"
+  },
+  {
+   "id": "G29",
+   "hunch": "Buy when price breaks the 12-bar high and RSI(14) is above 60; exit after 24 bars.",
+   "outcome": "spec",
+   "strict": {
+    "fields": 3,
+    "hits": 3,
+    "exact": true
+   },
+   "lenient": {
+    "fields": 3,
+    "hits": 3,
+    "exact": true
+   },
+   "spec": {
+    "entry": {
+     "all": [
+      {
+       "feature": "breakout",
+       "op": ">",
+       "value": 0.0,
+       "lookback": 12,
+       "window": null,
+       "fast": null,
+       "slow": null
+      },
+      {
+       "feature": "rsi",
+       "op": ">",
+       "value": 60.0,
+       "lookback": null,
+       "window": 14,
+       "fast": null,
+       "slow": null
+      }
+     ]
+    },
+    "exit": {
+     "hold_bars": 24,
+     "take_profit": null,
+     "stop_loss": null,
+     "any": []
+    },
+    "cooldown_bars": 0
+   },
+   "interaction_id": "v1_ChdSR1B2YXFUSkJ1N2trZFVQcHVub2lBOBIXUkdQdmFxVEpCdTdra2RVUHB1bm9pQTg"
+  },
+  {
+   "id": "G30",
+   "hunch": "Buy when price rises 4% from its 24-bar low; stop-loss 2%, take profit 6%.",
+   "outcome": "spec",
+   "strict": {
+    "fields": 3,
+    "hits": 3,
+    "exact": true
+   },
+   "lenient": {
+    "fields": 3,
+    "hits": 3,
+    "exact": true
+   },
+   "spec": {
+    "entry": {
+     "all": [
+      {
+       "feature": "rise_from_low",
+       "op": ">=",
+       "value": 0.04,
+       "lookback": 24,
+       "window": null,
+       "fast": null,
+       "slow": null
+      }
+     ]
+    },
+    "exit": {
+     "hold_bars": null,
+     "take_profit": 0.06,
+     "stop_loss": 0.02,
+     "any": []
+    },
+    "cooldown_bars": 0
+   },
+   "interaction_id": "v1_ChdTbVB2YXVTWUg1U1Vuc0VQNE9TWTJRRRIXU21QdmF1U1lINVNVbnNFUDRPU1kyUUU"
+  }
+ ],
+ "ambiguous_rows": [
+  {
+   "id": "Q01",
+   "hunch": "BTC bounces back after a big drop",
+   "asked": true,
+   "questions": [
+    {
+     "id": "drop_size_and_window",
+     "text": "How do you define a 'big drop' (size and lookback window, assuming 1 bar = 1 hour)?",
+     "options": [
+      "5% drop over 24 bars",
+      "8% drop over 24 bars",
+      "10% drop over 48 bars",
+      "15% drop from the 72-bar high"
+     ]
+    },
+    {
+     "id": "drop_measurement",
+     "text": "How should the drop be measured?",
+     "options": [
+      "Close-to-close return over the window",
+      "Drawdown from the highest close in the window",
+      "Price below its 24-bar simple moving average"
+     ]
+    },
+    {
+     "id": "exit_rule",
+     "text": "How should the trade exit after entering on the drop?",
+     "options": [
+      "Hold for 24 bars",
+      "Take profit at +4% or stop loss at -4%",
+      "Take profit at +5%, stop loss at -3%, or hold up to 48 bars",
+      "Exit when RSI(14) crosses above 50 (or after 48 bars)"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "Q02",
+   "hunch": "Buy the dip",
+   "asked": true,
+   "questions": [
+    {
+     "id": "dip_definition",
+     "text": "How do you define a 'dip' to buy?",
+     "options": [
+      "Down 5% from the highest close of the last 24 bars",
+      "Down 10% from the highest close of the last 72 bars",
+      "24-bar return is -5% or worse",
+      "14-bar RSI drops below 30"
+     ]
+    },
+    {
+     "id": "exit_rule",
+     "text": "When should the trade exit?",
+     "options": [
+      "Take profit at +5%, stop loss at -3%, or hold up to 48 bars",
+      "Take profit at +10%, stop loss at -5%, or hold up to 72 bars",
+      "Exit when price crosses back above the 24-bar moving average (or after 48 bars time stop)"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "Q03",
+   "hunch": "Momentum works in crypto",
+   "asked": true,
+   "questions": [
+    {
+     "id": "entry_signal",
+     "text": "How do you want to define the momentum entry signal?",
+     "options": [
+      "Price breaks above the 48-bar (2-day) high",
+      "Price rises at least 5% over the last 24 bars (1 day)",
+      "Fast 20-bar moving average crosses above slow 50-bar moving average",
+      "14-bar RSI crosses above 60"
+     ]
+    },
+    {
+     "id": "exit_rule",
+     "text": "When should the trade exit?",
+     "options": [
+      "Hold for 24 bars (1 day)",
+      "Hold for 72 bars (3 days)",
+      "Exit when price closes below the 20-bar moving average",
+      "Take profit at +10% or stop loss at -5%"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "Q04",
+   "hunch": "Sell when it gets overbought",
+   "asked": true,
+   "questions": [
+    {
+     "id": "entry_rule",
+     "text": "This backtester is long-only (no short selling), so 'sell when overbought' can only be used as an exit rule for an existing long trade. How would you like to enter the long trade in the first place?",
+     "options": [
+      "Buy when oversold (14-bar RSI < 30) and exit when overbought",
+      "Buy on a 24-bar high breakout and exit when overbought",
+      "Buy when price crosses above the 50-bar SMA and exit when overbought"
+     ]
+    },
+    {
+     "id": "overbought_definition",
+     "text": "How do you want to define 'overbought' for the exit?",
+     "options": [
+      "14-bar RSI > 70",
+      "14-bar RSI > 80",
+      "Price is more than 5% above its 20-bar SMA"
+     ]
+    },
+    {
+     "id": "backup_exit",
+     "text": "Would you like a backup exit in case it never gets overbought?",
+     "options": [
+      "Stop loss at -3% and max hold of 48 bars",
+      "Stop loss at -5% and max hold of 120 bars",
+      "Exit only when the overbought condition is met (plus a 240-bar max hold limit)"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "Q05",
+   "hunch": "ETH tends to recover after a crash",
+   "asked": true,
+   "questions": [
+    {
+     "id": "crash_definition",
+     "text": "How do you define a 'crash' to trigger the buy?",
+     "options": [
+      "5% drop over 24 bars (close-to-close) and RSI(14) < 30",
+      "10% drop from the 48-bar high",
+      "15% drop from the 168-bar (1-week) high",
+      "8% drop over 12 bars (close-to-close)"
+     ]
+    },
+    {
+     "id": "exit_rule",
+     "text": "How should the trade exit once entered?",
+     "options": [
+      "Hold for 24 bars, or exit at +5% profit / -5% stop loss",
+      "Hold for 72 bars, or exit at +10% profit / -7% stop loss",
+      "Exit when price crosses back above the 24-bar SMA (max hold 120 bars)"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "Q06",
+   "hunch": "Buy when the trend turns up",
+   "asked": true,
+   "questions": [
+    {
+     "id": "entry_signal",
+     "text": "How should we define the trend turning up?",
+     "options": [
+      "Price crosses above a moving average",
+      "Fast moving average crosses above slow moving average",
+      "Price breaks out above a recent N-bar high",
+      "Price rebounds by X% from a recent low"
+     ]
+    },
+    {
+     "id": "window",
+     "text": "What timeframe/lookback window should we measure this over (assuming 1 bar = 1 hour)?",
+     "options": [
+      "Short-term (e.g., 20 bars / ~1 day for MA or breakout, or 10/30 MA crossover) ",
+      "Medium-term (e.g., 50 bars / ~2 days for MA or breakout, or 20/50 MA crossover) ",
+      "Longer-term (e.g., 100 bars / ~4 days for MA or breakout, or 50/200 MA crossover)"
+     ]
+    },
+    {
+     "id": "exit_rule",
+     "text": "How and when should we exit the trade?",
+     "options": [
+      "When the trend reverses (e.g., crosses back below the moving average) ",
+      "After a fixed holding period (e.g., 24 or 48 bars) ",
+      "At a fixed take-profit / stop-loss (e.g., +5% TP / -3% SL) ",
+      "Combine trend reversal exit with a protective stop-loss (e.g., -3% SL)"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "Q07",
+   "hunch": "Prices revert to the mean",
+   "asked": true,
+   "questions": [
+    {
+     "id": "entry_signal",
+     "text": "Since this backtester is long-only, we test mean reversion by buying when price is stretched below its average. How should we measure an 'oversold' entry?",
+     "options": [
+      "Price is at least 3% below its 20-bar Simple Moving Average (SMA_20) \u2014 dip below average",
+      "Price is at least 5% below its 50-bar Simple Moving Average (SMA_50) \u2014 deeper dip",
+      "14-bar RSI drops below 30 \u2014 classic oversold indicator",
+      "Price has fallen at least 5% over the last 24 bars \u2014 sharp recent drop"
+     ]
+    },
+    {
+     "id": "exit_rule",
+     "text": "When should the trade exit once entered?",
+     "options": [
+      "Exit when price crosses back above the moving average (reverted to the mean), or after 48 bars",
+      "Exit when 14-bar RSI crosses above 50, or after 48 bars",
+      "Fixed target and stop: +3% take profit, -3% stop loss, max hold 48 bars",
+      "Hold for a fixed 24 bars (about 1 day assuming 1h bars)"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "Q08",
+   "hunch": "Buy breakouts",
+   "asked": true,
+   "questions": [
+    {
+     "id": "lookback",
+     "text": "Over what lookback window should the high be broken (assuming 1 bar = 1 hour)?",
+     "options": [
+      "24 bars (1 day high, close > prior 24-bar max close, threshold 0%)",
+      "48 bars (2 day high, close > prior 48-bar max close, threshold 0%)",
+      "168 bars (7 day high, close > prior 168-bar max close, threshold 0%)",
+      "24 bars with a 1% buffer (close >= 1% above prior 24-bar max close)"
+     ]
+    },
+    {
+     "id": "exit_rule",
+     "text": "How should the trade exit?",
+     "options": [
+      "Hold for 24 bars, or exit at +5% take profit / -3% stop loss",
+      "Hold for 48 bars with a -4% stop loss",
+      "Exit when price drops below the 20-bar SMA, or after 72 bars",
+      "Trailing exit: when drawdown from the 24-bar high reaches -3%, or after 48 bars"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "Q09",
+   "hunch": "Quiet markets come before big moves",
+   "asked": true,
+   "questions": [
+    {
+     "id": "quiet_definition",
+     "text": "How do you want to define a 'quiet market' (assuming 1 bar = 1 hour)?",
+     "options": [
+      "24-bar volatility is below 0.5% (0.005)",
+      "48-bar volatility is below 0.5% (0.005)",
+      "24-bar volatility is below 1.0% (0.01)"
+     ]
+    },
+    {
+     "id": "entry_trigger",
+     "text": "Since the backtester is long-only, do you want to buy as soon as the market gets quiet, or wait for an upward move out of the quiet period?",
+     "options": [
+      "Buy immediately when volatility drops below the threshold",
+      "Buy when volatility is low AND price breaks above its 24-bar high",
+      "Buy when volatility is low AND price is above its 50-bar SMA"
+     ]
+    },
+    {
+     "id": "exit_rule",
+     "text": "How should the trade exit?",
+     "options": [
+      "Hold for 24 bars, or exit at +5% take profit / -2% stop loss",
+      "Hold for 48 bars, or exit at +8% take profit / -3% stop loss",
+      "Time-based exit only: hold for 48 bars"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "Q10",
+   "hunch": "After a strong week, keep riding it",
+   "asked": true,
+   "questions": [
+    {
+     "id": "entry_strength",
+     "text": "How do you define a 'strong week' (assuming 1 week = 168 hourly bars)?",
+     "options": [
+      "7-day return >= 5%",
+      "7-day return >= 10%",
+      "7-day return >= 15%",
+      "Breakout above the previous 168-bar high"
+     ]
+    },
+    {
+     "id": "exit_rule",
+     "text": "How long do you want to ride the trade, or when do you exit?",
+     "options": [
+      "Hold for 1 week (168 bars) then exit",
+      "Hold for 3 days (72 bars) then exit",
+      "Take profit at +10%, stop loss at -5%",
+      "Exit when price drops below its 50-bar moving average"
+     ]
+    }
+   ]
+  }
+ ]
+}

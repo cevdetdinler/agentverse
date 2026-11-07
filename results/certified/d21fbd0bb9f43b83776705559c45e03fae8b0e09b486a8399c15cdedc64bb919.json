@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "name": "Buy 3% below the 50-bar average, sell back at the average",
+  "hunch_text": "Buy 3% below the 50-bar average, sell back at the average",
+  "entry": {
+    "all": [
+      {
+        "feature": "price_vs_sma",
+        "op": "<=",
+        "value": -0.03,
+        "lookback": null,
+        "window": 50,
+        "fast": null,
+        "slow": null
+      }
+    ]
+  },
+  "exit": {
+    "hold_bars": null,
+    "take_profit": null,
+    "stop_loss": null,
+    "any": [
+      {
+        "feature": "price_vs_sma",
+        "op": ">=",
+        "value": 0.0,
+        "lookback": null,
+        "window": 50,
+        "fast": null,
+        "slow": null
+      }
+    ]
+  },
+  "cooldown_bars": 0,
+  "assumptions": [
+    "1 bar treated as 1 hour (test data is 1h or 4h bars; the interval is hidden)"
+  ],
+  "parent_fingerprint": null,
+  "idea_id": "idea_b53e9c8f"
+}

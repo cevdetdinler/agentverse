@@ -1,0 +1,813 @@
+{
+ "note": "E4 translation gold set. Drafted by Claude Code; a teammate should review each gold card BEFORE the model is run for reported numbers. Unambiguous hunches state every material detail; ambiguous ones omit size/window/exit on purpose. SELF-ASSESSMENT.",
+ "unambiguous": [
+  {
+   "id": "G01",
+   "hunch": "Buy when the price falls 5% or more over 24 bars; sell after holding 24 bars.",
+   "gold": {
+    "entry": {
+     "all": [
+      {
+       "feature": "return",
+       "op": "<=",
+       "value": -0.05,
+       "lookback": 24
+      }
+     ]
+    },
+    "exit": {
+     "hold_bars": 24,
+     "take_profit": null,
+     "stop_loss": null,
+     "any": []
+    },
+    "cooldown_bars": 0
+   }
+  },
+  {
+   "id": "G02",
+   "hunch": "Buy when the 12-bar return is below -3%; exit after 12 bars.",
+   "gold": {
+    "entry": {
+     "all": [
+      {
+       "feature": "return",
+       "op": "<",
+       "value": -0.03,
+       "lookback": 12
+      }
+     ]
+    },
+    "exit": {
+     "hold_bars": 12,
+     "take_profit": null,
+     "stop_loss": null,
+     "any": []
+    },
+    "cooldown_bars": 0
+   }
+  },
+  {
+   "id": "G03",
+   "hunch": "Buy when the 48-bar return is at least +8%; hold for 48 bars.",
+   "gold": {
+    "entry": {
+     "all": [
+      {
+       "feature": "return",
+       "op": ">=",
+       "value": 0.08,
+       "lookback": 48
+      }
+     ]
+    },
+    "exit": {
+     "hold_bars": 48,
+     "take_profit": null,
+     "stop_loss": null,
+     "any": []
+    },
+    "cooldown_bars": 0
+   }
+  },
+  {
+   "id": "G04",
+   "hunch": "Buy when RSI over 14 bars is below 30; sell when RSI(14) goes above 50.",
+   "gold": {
+    "entry": {
+     "all": [
+      {
+       "feature": "rsi",
+       "op": "<",
+       "value": 30,
+       "window": 14
+      }
+     ]
+    },
+    "exit": {
+     "hold_bars": null,
+     "take_profit": null,
+     "stop_loss": null,
+     "any": [
+      {
+       "feature": "rsi",
+       "op": ">",
+       "value": 50,
+       "window": 14
+      }
+     ]
+    },
+    "cooldown_bars": 0
+   }
+  },
+  {
+   "id": "G05",
+   "hunch": "Buy when 7-bar RSI drops under 20; exit after 10 bars.",
+   "gold": {
+    "entry": {
+     "all": [
+      {
+       "feature": "rsi",
+       "op": "<",
+       "value": 20,
+       "window": 7
+      }
+     ]
+    },
+    "exit": {
+     "hold_bars": 10,
+     "take_profit": null,
+     "stop_loss": null,
+     "any": []
+    },
+    "cooldown_bars": 0
+   }
+  },
+  {
+   "id": "G06",
+   "hunch": "Buy when RSI(21) crosses above 50; sell when RSI(21) crosses below 50.",
+   "gold": {
+    "entry": {
+     "all": [
+      {
+       "feature": "rsi",
+       "op": "crosses_above",
+       "value": 50,
+       "window": 21
+      }
+     ]
+    },
+    "exit": {
+     "hold_bars": null,
+     "take_profit": null,
+     "stop_loss": null,
+     "any": [
+      {
+       "feature": "rsi",
+       "op": "crosses_below",
+       "value": 50,
+       "window": 21
+      }
+     ]
+    },
+    "cooldown_bars": 0
+   }
+  },
+  {
+   "id": "G07",
+   "hunch": "Buy when the 10-bar SMA crosses above the 50-bar SMA; sell when it crosses back below.",
+   "gold": {
+    "entry": {
+     "all": [
+      {
+       "feature": "sma_ratio",
+       "op": "crosses_above",
+       "value": 0,
+       "fast": 10,
+       "slow": 50
+      }
+     ]
+    },
+    "exit": {
+     "hold_bars": null,
+     "take_profit": null,
+     "stop_loss": null,
+     "any": [
+      {
+       "feature": "sma_ratio",
+       "op": "crosses_below",
+       "value": 0,
+       "fast": 10,
+       "slow": 50
+      }
+     ]
+    },
+    "cooldown_bars": 0
+   }
+  },
+  {
+   "id": "G08",
+   "hunch": "Buy when the 20-bar average is more than 2% above the 100-bar average; hold 24 bars.",
+   "gold": {
+    "entry": {
+     "all": [
+      {
+       "feature": "sma_ratio",
+       "op": ">",
+       "value": 0.02,
+       "fast": 20,
+       "slow": 100
+      }
+     ]
+    },
+    "exit": {
+     "hold_bars": 24,
+     "take_profit": null,
+     "stop_loss": null,
+     "any": []
+    },
+    "cooldown_bars": 0
+   }
+  },
+  {
+   "id": "G09",
+   "hunch": "Buy when price is at least 3% below its 50-bar moving average; sell when price is back above the 50-bar average.",
+   "gold": {
+    "entry": {
+     "all": [
+      {
+       "feature": "price_vs_sma",
+       "op": "<=",
+       "value": -0.03,
+       "window": 50
+      }
+     ]
+    },
+    "exit": {
+     "hold_bars": null,
+     "take_profit": null,
+     "stop_loss": null,
+     "any": [
+      {
+       "feature": "price_vs_sma",
+       "op": ">",
+       "value": 0,
+       "window": 50
+      }
+     ]
+    },
+    "cooldown_bars": 0
+   }
+  },
+  {
+   "id": "G10",
+   "hunch": "Buy when price closes above its 200-bar moving average; sell when it closes below it.",
+   "gold": {
+    "entry": {
+     "all": [
+      {
+       "feature": "price_vs_sma",
+       "op": ">",
+       "value": 0,
+       "window": 200
+      }
+     ]
+    },
+    "exit": {
+     "hold_bars": null,
+     "take_profit": null,
+     "stop_loss": null,
+     "any": [
+      {
+       "feature": "price_vs_sma",
+       "op": "<",
+       "value": 0,
+       "window": 200
+      }
+     ]
+    },
+    "cooldown_bars": 0
+   }
+  },
+  {
+   "id": "G11",
+   "hunch": "Buy when price is 10% or more below the highest close of the last 72 bars; hold 48 bars.",
+   "gold": {
+    "entry": {
+     "all": [
+      {
+       "feature": "drawdown_from_high",
+       "op": "<=",
+       "value": -0.1,
+       "lookback": 72
+      }
+     ]
+    },
+    "exit": {
+     "hold_bars": 48,
+     "take_profit": null,
+     "stop_loss": null,
+     "any": []
+    },
+    "cooldown_bars": 0
+   }
+  },
+  {
+   "id": "G12",
+   "hunch": "Buy after a 15% drawdown from the 168-bar high; take profit at +6% or stop out at -4%.",
+   "gold": {
+    "entry": {
+     "all": [
+      {
+       "feature": "drawdown_from_high",
+       "op": "<=",
+       "value": -0.15,
+       "lookback": 168
+      }
+     ]
+    },
+    "exit": {
+     "hold_bars": null,
+     "take_profit": 0.06,
+     "stop_loss": 0.04,
+     "any": []
+    },
+    "cooldown_bars": 0
+   }
+  },
+  {
+   "id": "G13",
+   "hunch": "Buy when price is up 8% or more from its lowest close in the last 48 bars; hold 24 bars.",
+   "gold": {
+    "entry": {
+     "all": [
+      {
+       "feature": "rise_from_low",
+       "op": ">=",
+       "value": 0.08,
+       "lookback": 48
+      }
+     ]
+    },
+    "exit": {
+     "hold_bars": 24,
+     "take_profit": null,
+     "stop_loss": null,
+     "any": []
+    },
+    "cooldown_bars": 0
+   }
+  },
+  {
+   "id": "G14",
+   "hunch": "Buy when the close breaks above the highest close of the previous 48 bars; hold 24 bars with a 3% stop-loss.",
+   "gold": {
+    "entry": {
+     "all": [
+      {
+       "feature": "breakout",
+       "op": ">",
+       "value": 0,
+       "lookback": 48
+      }
+     ]
+    },
+    "exit": {
+     "hold_bars": 24,
+     "take_profit": null,
+     "stop_loss": 0.03,
+     "any": []
+    },
+    "cooldown_bars": 0
+   }
+  },
+  {
+   "id": "G15",
+   "hunch": "Buy a breakout at least 1% above the prior 24-bar high; exit after 12 bars.",
+   "gold": {
+    "entry": {
+     "all": [
+      {
+       "feature": "breakout",
+       "op": ">=",
+       "value": 0.01,
+       "lookback": 24
+      }
+     ]
+    },
+    "exit": {
+     "hold_bars": 12,
+     "take_profit": null,
+     "stop_loss": null,
+     "any": []
+    },
+    "cooldown_bars": 0
+   }
+  },
+  {
+   "id": "G16",
+   "hunch": "Buy when 24-bar volatility of returns is below 0.5%; hold 24 bars.",
+   "gold": {
+    "entry": {
+     "all": [
+      {
+       "feature": "volatility",
+       "op": "<",
+       "value": 0.005,
+       "lookback": 24
+      }
+     ]
+    },
+    "exit": {
+     "hold_bars": 24,
+     "take_profit": null,
+     "stop_loss": null,
+     "any": []
+    },
+    "cooldown_bars": 0
+   }
+  },
+  {
+   "id": "G17",
+   "hunch": "Buy when 12-bar volatility is above 1.5%; sell after 6 bars.",
+   "gold": {
+    "entry": {
+     "all": [
+      {
+       "feature": "volatility",
+       "op": ">",
+       "value": 0.015,
+       "lookback": 12
+      }
+     ]
+    },
+    "exit": {
+     "hold_bars": 6,
+     "take_profit": null,
+     "stop_loss": null,
+     "any": []
+    },
+    "cooldown_bars": 0
+   }
+  },
+  {
+   "id": "G18",
+   "hunch": "Buy after 4 consecutive down closes; hold for 6 bars.",
+   "gold": {
+    "entry": {
+     "all": [
+      {
+       "feature": "down_streak",
+       "op": ">=",
+       "value": 4
+      }
+     ]
+    },
+    "exit": {
+     "hold_bars": 6,
+     "take_profit": null,
+     "stop_loss": null,
+     "any": []
+    },
+    "cooldown_bars": 0
+   }
+  },
+  {
+   "id": "G19",
+   "hunch": "Buy after 5 down bars in a row; take profit at +2% or exit after 12 bars.",
+   "gold": {
+    "entry": {
+     "all": [
+      {
+       "feature": "down_streak",
+       "op": ">=",
+       "value": 5
+      }
+     ]
+    },
+    "exit": {
+     "hold_bars": 12,
+     "take_profit": 0.02,
+     "stop_loss": null,
+     "any": []
+    },
+    "cooldown_bars": 0
+   }
+  },
+  {
+   "id": "G20",
+   "hunch": "Buy when the 6-bar return is -3% or worse; take profit at +1.5% or exit after 12 bars.",
+   "gold": {
+    "entry": {
+     "all": [
+      {
+       "feature": "return",
+       "op": "<=",
+       "value": -0.03,
+       "lookback": 6
+      }
+     ]
+    },
+    "exit": {
+     "hold_bars": 12,
+     "take_profit": 0.015,
+     "stop_loss": null,
+     "any": []
+    },
+    "cooldown_bars": 0
+   }
+  },
+  {
+   "id": "G21",
+   "hunch": "Buy when the 24-bar return is below -8%; exit at +4% or after 72 bars; wait 24 bars before re-entering.",
+   "gold": {
+    "entry": {
+     "all": [
+      {
+       "feature": "return",
+       "op": "<",
+       "value": -0.08,
+       "lookback": 24
+      }
+     ]
+    },
+    "exit": {
+     "hold_bars": 72,
+     "take_profit": 0.04,
+     "stop_loss": null,
+     "any": []
+    },
+    "cooldown_bars": 24
+   }
+  },
+  {
+   "id": "G22",
+   "hunch": "Buy when RSI(14) is under 35 and price is above its 200-bar average; hold 24 bars.",
+   "gold": {
+    "entry": {
+     "all": [
+      {
+       "feature": "rsi",
+       "op": "<",
+       "value": 35,
+       "window": 14
+      },
+      {
+       "feature": "price_vs_sma",
+       "op": ">",
+       "value": 0,
+       "window": 200
+      }
+     ]
+    },
+    "exit": {
+     "hold_bars": 24,
+     "take_profit": null,
+     "stop_loss": null,
+     "any": []
+    },
+    "cooldown_bars": 0
+   }
+  },
+  {
+   "id": "G23",
+   "hunch": "Buy a 5% drop over 24 bars only if the 50-bar average is above the 200-bar average; hold 48 bars.",
+   "gold": {
+    "entry": {
+     "all": [
+      {
+       "feature": "return",
+       "op": "<=",
+       "value": -0.05,
+       "lookback": 24
+      },
+      {
+       "feature": "sma_ratio",
+       "op": ">",
+       "value": 0,
+       "fast": 50,
+       "slow": 200
+      }
+     ]
+    },
+    "exit": {
+     "hold_bars": 48,
+     "take_profit": null,
+     "stop_loss": null,
+     "any": []
+    },
+    "cooldown_bars": 0
+   }
+  },
+  {
+   "id": "G24",
+   "hunch": "Buy when 24-bar volatility is under 0.6% and price is above its 50-bar average; exit after 24 bars or at a 2% stop.",
+   "gold": {
+    "entry": {
+     "all": [
+      {
+       "feature": "volatility",
+       "op": "<",
+       "value": 0.006,
+       "lookback": 24
+      },
+      {
+       "feature": "price_vs_sma",
+       "op": ">",
+       "value": 0,
+       "window": 50
+      }
+     ]
+    },
+    "exit": {
+     "hold_bars": 24,
+     "take_profit": null,
+     "stop_loss": 0.02,
+     "any": []
+    },
+    "cooldown_bars": 0
+   }
+  },
+  {
+   "id": "G25",
+   "hunch": "Buy when the 12-bar return is above +3%; sell when the 12-bar return turns negative.",
+   "gold": {
+    "entry": {
+     "all": [
+      {
+       "feature": "return",
+       "op": ">",
+       "value": 0.03,
+       "lookback": 12
+      }
+     ]
+    },
+    "exit": {
+     "hold_bars": null,
+     "take_profit": null,
+     "stop_loss": null,
+     "any": [
+      {
+       "feature": "return",
+       "op": "<",
+       "value": 0,
+       "lookback": 12
+      }
+     ]
+    },
+    "cooldown_bars": 0
+   }
+  },
+  {
+   "id": "G26",
+   "hunch": "Buy when price is 2% above its 20-bar average; sell when it falls back below the 20-bar average.",
+   "gold": {
+    "entry": {
+     "all": [
+      {
+       "feature": "price_vs_sma",
+       "op": ">=",
+       "value": 0.02,
+       "window": 20
+      }
+     ]
+    },
+    "exit": {
+     "hold_bars": null,
+     "take_profit": null,
+     "stop_loss": null,
+     "any": [
+      {
+       "feature": "price_vs_sma",
+       "op": "<",
+       "value": 0,
+       "window": 20
+      }
+     ]
+    },
+    "cooldown_bars": 0
+   }
+  },
+  {
+   "id": "G27",
+   "hunch": "Buy after a 2% one-bar drop; sell after 3 bars.",
+   "gold": {
+    "entry": {
+     "all": [
+      {
+       "feature": "return",
+       "op": "<=",
+       "value": -0.02,
+       "lookback": 1
+      }
+     ]
+    },
+    "exit": {
+     "hold_bars": 3,
+     "take_profit": null,
+     "stop_loss": null,
+     "any": []
+    },
+    "cooldown_bars": 0
+   }
+  },
+  {
+   "id": "G28",
+   "hunch": "Buy when the 5-bar SMA crosses above the 20-bar SMA; hold 12 bars.",
+   "gold": {
+    "entry": {
+     "all": [
+      {
+       "feature": "sma_ratio",
+       "op": "crosses_above",
+       "value": 0,
+       "fast": 5,
+       "slow": 20
+      }
+     ]
+    },
+    "exit": {
+     "hold_bars": 12,
+     "take_profit": null,
+     "stop_loss": null,
+     "any": []
+    },
+    "cooldown_bars": 0
+   }
+  },
+  {
+   "id": "G29",
+   "hunch": "Buy when price breaks the 12-bar high and RSI(14) is above 60; exit after 24 bars.",
+   "gold": {
+    "entry": {
+     "all": [
+      {
+       "feature": "breakout",
+       "op": ">",
+       "value": 0,
+       "lookback": 12
+      },
+      {
+       "feature": "rsi",
+       "op": ">",
+       "value": 60,
+       "window": 14
+      }
+     ]
+    },
+    "exit": {
+     "hold_bars": 24,
+     "take_profit": null,
+     "stop_loss": null,
+     "any": []
+    },
+    "cooldown_bars": 0
+   }
+  },
+  {
+   "id": "G30",
+   "hunch": "Buy when price rises 4% from its 24-bar low; stop-loss 2%, take profit 6%.",
+   "gold": {
+    "entry": {
+     "all": [
+      {
+       "feature": "rise_from_low",
+       "op": ">=",
+       "value": 0.04,
+       "lookback": 24
+      }
+     ]
+    },
+    "exit": {
+     "hold_bars": null,
+     "take_profit": 0.06,
+     "stop_loss": 0.02,
+     "any": []
+    },
+    "cooldown_bars": 0
+   }
+  }
+ ],
+ "ambiguous": [
+  {
+   "id": "Q01",
+   "hunch": "BTC bounces back after a big drop"
+  },
+  {
+   "id": "Q02",
+   "hunch": "Buy the dip"
+  },
+  {
+   "id": "Q03",
+   "hunch": "Momentum works in crypto"
+  },
+  {
+   "id": "Q04",
+   "hunch": "Sell when it gets overbought"
+  },
+  {
+   "id": "Q05",
+   "hunch": "ETH tends to recover after a crash"
+  },
+  {
+   "id": "Q06",
+   "hunch": "Buy when the trend turns up"
+  },
+  {
+   "id": "Q07",
+   "hunch": "Prices revert to the mean"
+  },
+  {
+   "id": "Q08",
+   "hunch": "Buy breakouts"
+  },
+  {
+   "id": "Q09",
+   "hunch": "Quiet markets come before big moves"
+  },
+  {
+   "id": "Q10",
+   "hunch": "After a strong week, keep riding it"
+  }
+ ]
+}

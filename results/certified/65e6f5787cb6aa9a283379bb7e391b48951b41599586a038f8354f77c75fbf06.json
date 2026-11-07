@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "name": "10/50 moving-average crossover",
+  "hunch_text": "10/50 moving-average crossover",
+  "entry": {
+    "all": [
+      {
+        "feature": "sma_ratio",
+        "op": ">",
+        "value": 0.0,
+        "lookback": null,
+        "window": null,
+        "fast": 10,
+        "slow": 50
+      }
+    ]
+  },
+  "exit": {
+    "hold_bars": null,
+    "take_profit": null,
+    "stop_loss": null,
+    "any": [
+      {
+        "feature": "sma_ratio",
+        "op": "<",
+        "value": 0.0,
+        "lookback": null,
+        "window": null,
+        "fast": 10,
+        "slow": 50
+      }
+    ]
+  },
+  "cooldown_bars": 0,
+  "assumptions": [
+    "1 bar treated as 1 hour (test data is 1h or 4h bars; the interval is hidden)"
+  ],
+  "parent_fingerprint": null,
+  "idea_id": "idea_23770383"
+}

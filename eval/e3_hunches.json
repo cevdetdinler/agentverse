@@ -1,0 +1,248 @@
+{
+ "note": "Ten classic retail hunches, frozen as rule cards BEFORE any vault or hidden-challenge run. Drafted by Claude Code for the team; several resemble rules whose PRACTICE baseline (A1) was seen during development. None was tuned. Replace with the team's own pre-registered list if preferred, before running E3.",
+ "frozen_at": "2026-11-07",
+ "hunches": [
+  {
+   "id": "H01",
+   "hunch": "Buy a 5% drop over 24 bars, hold 24 bars",
+   "spec": {
+    "name": "Buy a 5% drop over 24 bars, hold 24 bars",
+    "hunch_text": "Buy a 5% drop over 24 bars, hold 24 bars",
+    "entry": {
+     "all": [
+      {
+       "feature": "return",
+       "lookback": 24,
+       "op": "<=",
+       "value": -0.05
+      }
+     ]
+    },
+    "exit": {
+     "hold_bars": 24
+    }
+   }
+  },
+  {
+   "id": "H02",
+   "hunch": "Buy when RSI(14) < 30, sell when RSI(14) > 50",
+   "spec": {
+    "name": "Buy when RSI(14) < 30, sell when RSI(14) > 50",
+    "hunch_text": "Buy when RSI(14) < 30, sell when RSI(14) > 50",
+    "entry": {
+     "all": [
+      {
+       "feature": "rsi",
+       "window": 14,
+       "op": "<",
+       "value": 30
+      }
+     ]
+    },
+    "exit": {
+     "any": [
+      {
+       "feature": "rsi",
+       "window": 14,
+       "op": ">",
+       "value": 50
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "H03",
+   "hunch": "10/50 moving-average crossover",
+   "spec": {
+    "name": "10/50 moving-average crossover",
+    "hunch_text": "10/50 moving-average crossover",
+    "entry": {
+     "all": [
+      {
+       "feature": "sma_ratio",
+       "fast": 10,
+       "slow": 50,
+       "op": ">",
+       "value": 0
+      }
+     ]
+    },
+    "exit": {
+     "any": [
+      {
+       "feature": "sma_ratio",
+       "fast": 10,
+       "slow": 50,
+       "op": "<",
+       "value": 0
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "H04",
+   "hunch": "Breakout above the 48-bar high, hold 24 bars, 3% stop",
+   "spec": {
+    "name": "Breakout above the 48-bar high, hold 24 bars, 3% stop",
+    "hunch_text": "Breakout above the 48-bar high, hold 24 bars, 3% stop",
+    "entry": {
+     "all": [
+      {
+       "feature": "breakout",
+       "lookback": 48,
+       "op": ">",
+       "value": 0
+      }
+     ]
+    },
+    "exit": {
+     "hold_bars": 24,
+     "stop_loss": 0.03
+    }
+   }
+  },
+  {
+   "id": "H05",
+   "hunch": "Momentum: buy after +5% over 24 bars, hold 24 bars",
+   "spec": {
+    "name": "Momentum: buy after +5% over 24 bars, hold 24 bars",
+    "hunch_text": "Momentum: buy after +5% over 24 bars, hold 24 bars",
+    "entry": {
+     "all": [
+      {
+       "feature": "return",
+       "lookback": 24,
+       "op": ">=",
+       "value": 0.05
+      }
+     ]
+    },
+    "exit": {
+     "hold_bars": 24
+    }
+   }
+  },
+  {
+   "id": "H06",
+   "hunch": "Buy after 4 down bars in a row, hold 6 bars",
+   "spec": {
+    "name": "Buy after 4 down bars in a row, hold 6 bars",
+    "hunch_text": "Buy after 4 down bars in a row, hold 6 bars",
+    "entry": {
+     "all": [
+      {
+       "feature": "down_streak",
+       "op": ">=",
+       "value": 4
+      }
+     ]
+    },
+    "exit": {
+     "hold_bars": 6
+    }
+   }
+  },
+  {
+   "id": "H07",
+   "hunch": "Buy 3% below the 50-bar average, sell back at the average",
+   "spec": {
+    "name": "Buy 3% below the 50-bar average, sell back at the average",
+    "hunch_text": "Buy 3% below the 50-bar average, sell back at the average",
+    "entry": {
+     "all": [
+      {
+       "feature": "price_vs_sma",
+       "window": 50,
+       "op": "<=",
+       "value": -0.03
+      }
+     ]
+    },
+    "exit": {
+     "any": [
+      {
+       "feature": "price_vs_sma",
+       "window": 50,
+       "op": ">=",
+       "value": 0
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "H08",
+   "hunch": "Trend filter: hold while above the 200-bar average",
+   "spec": {
+    "name": "Trend filter: hold while above the 200-bar average",
+    "hunch_text": "Trend filter: hold while above the 200-bar average",
+    "entry": {
+     "all": [
+      {
+       "feature": "price_vs_sma",
+       "window": 200,
+       "op": ">",
+       "value": 0
+      }
+     ]
+    },
+    "exit": {
+     "any": [
+      {
+       "feature": "price_vs_sma",
+       "window": 200,
+       "op": "<",
+       "value": 0
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "H09",
+   "hunch": "Buy a 3% dip over 6 bars, take +1.5% or exit after 12 bars",
+   "spec": {
+    "name": "Buy a 3% dip over 6 bars, take +1.5% or exit after 12 bars",
+    "hunch_text": "Buy a 3% dip over 6 bars, take +1.5% or exit after 12 bars",
+    "entry": {
+     "all": [
+      {
+       "feature": "return",
+       "lookback": 6,
+       "op": "<=",
+       "value": -0.03
+      }
+     ]
+    },
+    "exit": {
+     "hold_bars": 12,
+     "take_profit": 0.015
+    }
+   }
+  },
+  {
+   "id": "H10",
+   "hunch": "Buy a 10% drawdown from the 72-bar high, hold 48 bars or +5%",
+   "spec": {
+    "name": "Buy a 10% drawdown from the 72-bar high, hold 48 bars or +5%",
+    "hunch_text": "Buy a 10% drawdown from the 72-bar high, hold 48 bars or +5%",
+    "entry": {
+     "all": [
+      {
+       "feature": "drawdown_from_high",
+       "lookback": 72,
+       "op": "<=",
+       "value": -0.1
+      }
+     ]
+    },
+    "exit": {
+     "hold_bars": 48,
+     "take_profit": 0.05
+    }
+   }
+  }
+ ]
+}

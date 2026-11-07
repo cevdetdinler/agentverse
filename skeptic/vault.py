@@ -73,7 +73,7 @@ def is_contaminated(ledger: Ledger, fingerprint: str) -> bool:
                for e in ledger.find("vault_result", idea_id=idea_id))
 
 
-def open_vault(ledger: Ledger, fingerprint: str, session_id: str = "", vault_inputs: Optional[Path] = None) -> dict:
+def open_vault(ledger: Ledger, fingerprint: str, session_id: str = "", vault_inputs=None) -> dict:
     """Human-only action (called from the HTTP endpoint behind a button, never from the agent)."""
     approved = ledger.last("spec_approved", fingerprint=fingerprint)
     if not approved:
@@ -104,7 +104,10 @@ def open_vault(ledger: Ledger, fingerprint: str, session_id: str = "", vault_inp
         raise VaultError("not_eligible", "Only rule cards that passed every practice check may open the vault.")
 
     # 4. pre-commit the pass mark BEFORE touching the data
-    paths = _load(str(vault_inputs or VAULT_INPUTS))
+    if isinstance(vault_inputs, (list, tuple)):  # an in-memory holdout (the synthetic market)
+        paths = tuple(vault_inputs)
+    else:
+        paths = _load(str(vault_inputs or VAULT_INPUTS))
     ledger.append("vault_precommit", {
         "fingerprint": fingerprint, "idea_id": idea_id, "session_id": session_id,
         "pass_mark": dict(config.VAULT_PASS), "vault_paths": len(paths),

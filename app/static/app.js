@@ -19,10 +19,14 @@ const S = {
   library: [],
   suggestions: [],       // layer 2
   ghost: "",
+  market: "real",        // "real" (Binance Vision) or "synthetic" (generated, planted pattern)
 };
 
 // ------------------------------------------------------------------ api
 async function api(path, opts = {}) {
+  if (opts.body instanceof FormData) opts.body.append("market", S.market);
+  else if (opts.body) opts.body = { ...opts.body, market: S.market };
+  else if (path.startsWith("/api/") && !path.startsWith("/api/library")) path += (path.includes("?") ? "&" : "?") + `market=${S.market}`;
   const res = await fetch(path, {
     method: opts.body ? "POST" : "GET",
     headers: opts.body && !(opts.body instanceof FormData) ? { "Content-Type": "application/json" } : undefined,
@@ -54,6 +58,7 @@ function hide(id) { $(id).classList.add("hidden"); }
 // ------------------------------------------------------------------ boot
 async function boot() {
   try { S.sid = sessionStorage.getItem("skeptic_sid"); } catch { /* storage blocked */ }
+  try { S.market = sessionStorage.getItem("skeptic_market") === "synthetic" ? "synthetic" : "real"; } catch { /* ignore */ }
   S.config = await api(`/api/config${S.sid ? `?session_id=${S.sid}` : ""}`);
   if (!S.sid) {
     S.sid = S.config.new_session_id;
@@ -68,6 +73,36 @@ async function boot() {
   $("#drawer-close").onclick = () => $("#drawer").classList.remove("open");
   $("#verify-btn").onclick = async () => { setChain(await api("/api/ledger/verify")); renderLog(); };
   $("#media").onchange = onMedia;
+  wireMarket();
+}
+
+// ------------------------------------------------------------------ market switch (real vs synthetic)
+function renderMarket() {
+  document.querySelectorAll(".mkt").forEach((b) => b.classList.toggle("active", b.dataset.market === S.market));
+  const synth = S.market === "synthetic";
+  $("#lede-data").textContent = synth
+    ? "backtests them on a synthetic market with a known planted pattern, with real costs,"
+    : "backtests them on real prices with real costs,";
+  const note = $("#market-note");
+  note.classList.toggle("hidden", !synth);
+  if (synth) note.innerHTML = `<b>Synthetic market.</b> Prices come from our own generator with a planted “dip, then rebound” pattern, so a real edge exists to be found. Separate log, trial counts and vault. Not real market data.`;
+}
+
+function wireMarket() {
+  renderMarket();
+  document.querySelectorAll(".mkt").forEach((b) => (b.onclick = async () => {
+    if (b.dataset.market === S.market) return;
+    S.market = b.dataset.market;
+    try { sessionStorage.setItem("skeptic_market", S.market); } catch { /* ignore */ }
+    S.spec = null; S.approved = null; S.attacks = null; S.vault = null; S.history = null;
+    resetBelow("#sec-questions");
+    renderMarket();
+    S.config = await api(`/api/config?session_id=${S.sid}`);
+    setChain(S.config.chain);
+    refreshHistory();
+    const active = document.querySelector(".tab[data-tab].active")?.dataset.tab;
+    if (active === "log") renderLog(); else if (active === "history") renderHistory();
+  }));
 }
 
 function setChain(v) {
@@ -79,9 +114,9 @@ function setChain(v) {
 async function refreshChain() { try { setChain(await api("/api/ledger/verify")); } catch { /* offline */ } }
 
 function wireTabs() {
-  document.querySelectorAll(".tab").forEach((t) => {
+  document.querySelectorAll(".tab[data-tab]").forEach((t) => {
     t.onclick = () => {
-      document.querySelectorAll(".tab").forEach((x) => x.classList.toggle("active", x === t));
+      document.querySelectorAll(".tab[data-tab]").forEach((x) => x.classList.toggle("active", x === t));
       ["test", "history", "log"].forEach((name) => $(`#tab-${name}`).classList.toggle("hidden", name !== t.dataset.tab));
       if (t.dataset.tab === "history") renderHistory();
       if (t.dataset.tab === "log") renderLog();
@@ -516,6 +551,7 @@ async function openVault() {
   try {
     S.vault = await api("/api/vault/open", { body: { session_id: S.sid, fingerprint: S.approved.fingerprint } });
     $("#vault-body").innerHTML = vaultTable(S.vault);
+    $("#sec-vault .lock").textContent = "🔓";
     explain();
   } catch (e) {
     if (e.status === 409) {

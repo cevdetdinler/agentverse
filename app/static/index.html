@@ -18,6 +18,10 @@
       <button class="tab" data-tab="log">Log</button>
     </nav>
     <div class="spacer"></div>
+    <nav class="tabs market-switch" aria-label="Market">
+      <button class="tab mkt" data-market="real" title="Binance Vision price windows (anonymised)">Real market</button>
+      <button class="tab mkt" data-market="synthetic" title="Generated prices with a known planted pattern">Synthetic market</button>
+    </nav>
     <span id="chain-badge" class="badge" title="Hash-chained audit log, re-verified from disk">Log …</span>
     <span id="model-badge" class="badge model" title="Gemini model used for reasoning">…</span>
   </header>
@@ -27,8 +31,9 @@
     <div id="tab-test">
       <section class="hero">
         <h1>Would you put money on it?</h1>
-        <p class="lede">Type a trading hunch. Skeptic turns it into exact rules, backtests them on real prices with real costs,
+        <p class="lede">Type a trading hunch. Skeptic turns it into exact rules, <span id="lede-data">backtests them on real prices with real costs,</span>
           then tries to break them before you do.</p>
+        <div id="market-note" class="market-note hidden"></div>
         <div class="hunch-wrap">
           <div class="hunch-box">
             <div class="hunch-ghost" id="hunch-ghost" aria-hidden="true"></div>

@@ -1,6 +1,10 @@
 """Skeptic web API + static UI.
 
     .venv\\Scripts\\python.exe -m uvicorn app.server:app --port 8000
+
+Two markets, each with its own ledger, practice data, vault and Gemini call budget:
+  real       Binance Vision windows fetched with the kit (default)
+  synthetic  our own generator with a planted pattern (labelled "Synthetic market" in the UI)
 """
 from __future__ import annotations
 
@@ -10,30 +14,29 @@ import secrets
 import tempfile
 import threading
 from pathlib import Path
-from typing import Optional
+from typing import Literal, Optional
 
-from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
+from fastapi import FastAPI, File, Form, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from skeptic import config
-from skeptic.agent import Agent, AgentCallError, AgentLimitError
+from skeptic.agent import AgentCallError, AgentLimitError
 from skeptic.data import PRACTICE_INPUTS
-from skeptic.ledger import Ledger
-from skeptic.pipeline import LimitError, Skeptic
+from skeptic.markets import MARKETS, Market, build
+from skeptic.pipeline import LimitError
 from skeptic.spec import RuleCard
 from skeptic.vault import VaultError, vault_status
 
 STATIC = Path(__file__).resolve().parent / "static"
+MarketName = Literal["real", "synthetic"]
 
-app = FastAPI(title="Skeptic", version="1.0")
-ledger = Ledger()
-skeptic = Skeptic(ledger)
-agent = Agent(ledger)
-_sessions: dict[str, dict] = {}
+app = FastAPI(title="Skeptic", version="1.1")
+_markets: dict[str, Market] = {}
+_markets_lock = threading.Lock()
+_sessions: dict[tuple[str, str], dict] = {}
 _sessions_lock = threading.Lock()
-STARTUP_CHAIN = ledger.verify_chain()
 
 FUNCTION_FOR = {
     "A1": "skeptic.attacks.a1_baseline", "A2": "skeptic.attacks.a2_permutation", "A3": "skeptic.attacks.a3_wobble",
@@ -41,9 +44,18 @@ FUNCTION_FOR = {
 }
 
 
-def _session(sid: str) -> dict:
+def M(name: str = "real") -> Market:
+    if name not in MARKETS:
+        raise KeyError(f"unknown market {name!r}")
+    with _markets_lock:
+        if name not in _markets:
+            _markets[name] = build(name)
+        return _markets[name]
+
+
+def _session(market: str, sid: str) -> dict:
     with _sessions_lock:
-        return _sessions.setdefault(sid, {"rounds": 0, "previous_id": None, "hunch": None, "answers": {}})
+        return _sessions.setdefault((market, sid), {"rounds": 0, "previous_id": None, "hunch": None, "answers": {}})
 
 
 def _file_sha(path: Path) -> Optional[str]:
@@ -57,6 +69,16 @@ def _file_sha(path: Path) -> Optional[str]:
 
 
 PRACTICE_SHA = _file_sha(PRACTICE_INPUTS)
+STARTUP_CHAIN = M("real").ledger.verify_chain()
+
+
+def _data_step(market: str, paths) -> dict:
+    if market == "real":
+        return {"step": "raw data", "detail": "data/practice/inputs.jsonl (Binance Vision windows via the kit's fetch)",
+                "sha256": PRACTICE_SHA, "paths": paths}
+    m = config.SYNTHETIC_MARKET
+    return {"step": "raw data", "detail": f"Synthetic market: {MARKETS['synthetic']['source']}",
+            "sha256": f"seed {m['practice_seed']} · planted {m['effect']}", "paths": paths}
 
 
 # ------------------------------------------------------------------ errors
@@ -90,49 +112,53 @@ class HunchIn(BaseModel):
     session_id: str = Field(min_length=4, max_length=64)
     hunch: Optional[str] = None
     answers: Optional[dict[str, str]] = None
+    market: MarketName = "real"
 
 
 class ApproveIn(BaseModel):
     session_id: str
     spec: dict
     parent_fingerprint: Optional[str] = None
+    market: MarketName = "real"
 
 
 class FpIn(BaseModel):
     session_id: str
     fingerprint: str = Field(min_length=64, max_length=64)
     k: int = config.PERM_K_DEFAULT
+    market: MarketName = "real"
 
 
 # ------------------------------------------------------------------ hunch -> questions or rule card
 @app.post("/api/hunch")
 def post_hunch(body: HunchIn):
-    s = _session(body.session_id)
+    m = M(body.market)
+    s = _session(body.market, body.session_id)
     if body.hunch is not None:
         text = body.hunch.strip()
         if not text:
             raise LimitError("hunch_empty", "Type a hunch first.")
         if len(text) > config.LIMITS["hunch_chars"]:
-            raise skeptic.limit("hunch_chars", f"Hunches are limited to {config.LIMITS['hunch_chars']} characters.",
-                                body.session_id, length=len(text))
+            raise m.skeptic.limit("hunch_chars", f"Hunches are limited to {config.LIMITS['hunch_chars']} characters.",
+                                  body.session_id, length=len(text))
         s.update({"hunch": text, "rounds": 0, "previous_id": None, "answers": {}})
-        ledger.append("hunch_submitted", {"session_id": body.session_id, "text": text})
-        out = agent.translate_hunch(body.session_id, text)
+        m.ledger.append("hunch_submitted", {"session_id": body.session_id, "text": text})
+        out = m.agent.translate_hunch(body.session_id, text)
     else:
         if not s.get("hunch") or not body.answers:
             raise LimitError("no_hunch", "Start with a hunch.")
         s["rounds"] += 1
         s["answers"].update(body.answers)
-        out = agent.translate_hunch(body.session_id, s["hunch"], answers=body.answers, previous_id=s["previous_id"],
-                                    force_spec=s["rounds"] >= 2)
+        out = m.agent.translate_hunch(body.session_id, s["hunch"], answers=body.answers, previous_id=s["previous_id"],
+                                      force_spec=s["rounds"] >= 2)
     s["previous_id"] = out["interaction_id"]
     if "questions" in out:
-        ledger.append("questions_asked", {"session_id": body.session_id, "questions": out["questions"],
-                                          "interaction_id": out["interaction_id"]})
+        m.ledger.append("questions_asked", {"session_id": body.session_id, "questions": out["questions"],
+                                            "interaction_id": out["interaction_id"]})
         return {"questions": out["questions"], "interaction_id": out["interaction_id"], "model": out["model"]}
     card = RuleCard.model_validate(out["spec"])
-    ledger.append("spec_proposed", {"session_id": body.session_id, "spec": out["spec"], "fingerprint": card.fingerprint,
-                                    "interaction_id": out["interaction_id"], "answers": s["answers"]})
+    m.ledger.append("spec_proposed", {"session_id": body.session_id, "spec": out["spec"], "fingerprint": card.fingerprint,
+                                      "interaction_id": out["interaction_id"], "answers": s["answers"]})
     return {"spec": out["spec"], "fingerprint": card.fingerprint, "rules_text": card.describe(),
             "interaction_id": out["interaction_id"], "model": out["model"]}
 
@@ -149,76 +175,82 @@ def preview_spec(body: ApproveIn):
 
 @app.post("/api/spec/approve")
 def approve(body: ApproveIn):
-    return skeptic.approve_spec(body.session_id, body.spec, body.parent_fingerprint)
+    return M(body.market).skeptic.approve_spec(body.session_id, body.spec, body.parent_fingerprint)
 
 
 # ------------------------------------------------------------------ attacks
 @app.post("/api/attack")
 def attack(body: FpIn):
-    def planner(spec, a1):
-        return agent.plan_diagnostics(body.session_id, spec, a1)
+    m = M(body.market)
 
-    return skeptic.run_attacks(body.session_id, body.fingerprint, planner=planner, k=body.k)
+    def planner(spec, a1):
+        return m.agent.plan_diagnostics(body.session_id, spec, a1)
+
+    return m.skeptic.run_attacks(body.session_id, body.fingerprint, planner=planner, k=body.k)
 
 
 # ------------------------------------------------------------------ vault (human click only)
 @app.get("/api/vault/status")
-def get_vault_status(fingerprint: str):
-    return vault_status(ledger, fingerprint)
+def get_vault_status(fingerprint: str, market: MarketName = "real"):
+    return vault_status(M(market).ledger, fingerprint)
 
 
 @app.post("/api/vault/open")
 def post_vault_open(body: FpIn):
-    return skeptic.open_vault(body.session_id, body.fingerprint)
+    return M(body.market).skeptic.open_vault(body.session_id, body.fingerprint)
 
 
 # ------------------------------------------------------------------ explanation + rewrite
 @app.post("/api/explain")
 def explain(body: FpIn):
-    bundle = skeptic.results_bundle(body.fingerprint)
+    m = M(body.market)
+    bundle = m.skeptic.results_bundle(body.fingerprint)
     if not bundle["verdict"]["label"]:
         raise LimitError("no_verdict", "Run the attacks first.")
-    out = agent.explain_verdict(body.session_id, bundle, body.fingerprint)
-    ledger.append("explanation", {"session_id": body.session_id, "fingerprint": body.fingerprint, "label": out["label"],
-                                  "text": out["text"], "interaction_ids": out["interaction_ids"],
-                                  "removed_count": out["removed_count"], "regenerated": out["regenerated"]})
+    out = m.agent.explain_verdict(body.session_id, bundle, body.fingerprint)
+    m.ledger.append("explanation", {"session_id": body.session_id, "fingerprint": body.fingerprint, "label": out["label"],
+                                    "text": out["text"], "interaction_ids": out["interaction_ids"],
+                                    "removed_count": out["removed_count"], "regenerated": out["regenerated"]})
     return {**out, "verdict": bundle["verdict"]}
 
 
 @app.post("/api/rewrite")
 def rewrite(body: FpIn):
-    spec = skeptic.spec_for(body.fingerprint)
-    practice = ledger.last("verdict", fingerprint=body.fingerprint, stage="practice")
+    m = M(body.market)
+    spec = m.skeptic.spec_for(body.fingerprint)
+    practice = m.ledger.last("verdict", fingerprint=body.fingerprint, stage="practice")
     failures = practice["payload"]["gate"]["failing"] if practice else []
-    out = agent.suggest_rewrite(body.session_id, spec, failures or ["(no failures recorded)"])
+    out = m.agent.suggest_rewrite(body.session_id, spec, failures or ["(no failures recorded)"])
     card = RuleCard.model_validate(out["spec"])
     out["spec"] = card.model_copy(update={"idea_id": spec.idea_id, "parent_fingerprint": body.fingerprint}).model_dump(mode="json")
     out["fingerprint"] = card.fingerprint
     out["rules_text"] = card.describe()
-    ledger.append("spec_proposed", {"session_id": body.session_id, "spec": out["spec"], "fingerprint": card.fingerprint,
-                                    "interaction_id": out["interaction_id"], "source": "suggest_rewrite",
-                                    "parent_fingerprint": body.fingerprint})
+    m.ledger.append("spec_proposed", {"session_id": body.session_id, "spec": out["spec"], "fingerprint": card.fingerprint,
+                                      "interaction_id": out["interaction_id"], "source": "suggest_rewrite",
+                                      "parent_fingerprint": body.fingerprint})
     return out
 
 
 # ------------------------------------------------------------------ autocomplete + history
 @app.get("/api/suggest")
-def suggest(q: str, session_id: str):
+def suggest(q: str, session_id: str, market: MarketName = "real"):
+    m = M(market)
     q = q[: config.LIMITS["hunch_chars"]]
     if len(q.strip()) < 15:
         return {"completions": []}
-    history = [e["payload"]["text"] for e in ledger.entries("hunch_submitted")][-12:]
-    history += [f"answered: {a}" for e in ledger.entries("spec_proposed")[-6:]
+    history = [e["payload"]["text"] for e in m.ledger.entries("hunch_submitted")][-12:]
+    history += [f"answered: {a}" for e in m.ledger.entries("spec_proposed")[-6:]
                 for a in (e["payload"].get("answers") or {}).values()]
-    out = agent.suggest_completions(session_id, q, history)
+    out = m.agent.suggest_completions(session_id, q, history)
     if out["completions"]:
-        ledger.append("suggestion_shown", {"session_id": session_id, "prefix": q, "completions": out["completions"],
-                                           "cached": out.get("cached", False), "interaction_id": out.get("interaction_id")})
+        m.ledger.append("suggestion_shown", {"session_id": session_id, "prefix": q, "completions": out["completions"],
+                                             "cached": out.get("cached", False), "interaction_id": out.get("interaction_id")})
     return out
 
 
 @app.get("/api/history")
-def history():
+def history(market: MarketName = "real"):
+    ledger = M(market).ledger
     hunches = [{"text": e["payload"]["text"], "ts": e["ts"], "session_id": e["payload"].get("session_id")}
                for e in ledger.entries("hunch_submitted")]
     ideas: dict[str, dict] = {}
@@ -249,17 +281,19 @@ def library():
 
 # ------------------------------------------------------------------ ledger + trace
 @app.get("/api/ledger")
-def get_ledger(limit: int = 300):
+def get_ledger(limit: int = 300, market: MarketName = "real"):
+    ledger = M(market).ledger
     return {"entries": ledger.tail(min(max(1, limit), 2000)), "verify": ledger.verify_chain()}
 
 
 @app.get("/api/ledger/verify")
-def verify():
-    return ledger.verify_chain()
+def verify(market: MarketName = "real"):
+    return M(market).ledger.verify_chain()
 
 
 @app.get("/api/trace")
-def trace(fingerprint: str, attack: str):
+def trace(fingerprint: str, attack: str, market: MarketName = "real"):
+    ledger = M(market).ledger
     run = None
     for e in ledger.find("attack_run", fingerprint=fingerprint):
         if e["payload"]["id"] == attack:
@@ -274,9 +308,9 @@ def trace(fingerprint: str, attack: str):
     llm = [e for e in ledger.entries("llm_call") if e["payload"].get("session_id") == run["payload"].get("session_id")]
     tool = run["payload"]["inputs"].get("tool")
     return {
+        "market": market,
         "steps": [
-            {"step": "raw data", "detail": "data/practice/inputs.jsonl (Binance Vision windows via the kit's fetch)",
-             "sha256": PRACTICE_SHA, "paths": run["payload"]["inputs"].get("paths")},
+            _data_step(market, run["payload"]["inputs"].get("paths")),
             {"step": "rule card", "detail": f"approved by a human, ledger seq {approved['seq'] if approved else '?'}",
              "fingerprint": fingerprint},
             {"step": "pre-registration", "detail": planned["payload"]["alternative_explanation"] if planned else
@@ -293,10 +327,12 @@ def trace(fingerprint: str, attack: str):
 
 
 @app.get("/api/config")
-def get_config(session_id: str = ""):
+def get_config(session_id: str = "", market: MarketName = "real"):
+    m = M(market)
     return {"models": config.MODEL_IDS, "gate": config.GATE, "vault_pass": config.VAULT_PASS, "limits": config.LIMITS,
-            "perm_k_default": config.PERM_K_DEFAULT, "chain": ledger.verify_chain(), "startup_chain": STARTUP_CHAIN,
-            "practice_sha256": PRACTICE_SHA, "usage": agent.usage(session_id) if session_id else None,
+            "perm_k_default": config.PERM_K_DEFAULT, "chain": m.ledger.verify_chain(), "startup_chain": STARTUP_CHAIN,
+            "practice_sha256": PRACTICE_SHA, "usage": m.agent.usage(session_id) if session_id else None,
+            "markets": MARKETS, "market": market, "practice_paths": len(m.skeptic.paths),
             "new_session_id": "s_" + secrets.token_hex(6)}
 
 
@@ -306,22 +342,23 @@ ALLOWED_MEDIA = {"video/mp4": "video", "video/quicktime": "video", "video/webm":
 
 
 @app.post("/api/ingest")
-async def ingest(session_id: str = Form(...), file: UploadFile = File(...)):
+async def ingest(session_id: str = Form(...), market: str = Form("real"), file: UploadFile = File(...)):
+    m = M(market)
     kind = ALLOWED_MEDIA.get(file.content_type or "")
     if not kind:
         raise LimitError("media_type", "Upload an MP4/MOV/WebM clip or a PNG/JPEG/WebP screenshot.")
     data = await file.read()
     if len(data) > config.LIMITS["max_upload_bytes"]:
-        raise skeptic.limit("max_upload_bytes", "Uploads are limited to 20 MB.", session_id, size=len(data))
+        raise m.skeptic.limit("max_upload_bytes", "Uploads are limited to 20 MB.", session_id, size=len(data))
     suffix = Path(file.filename or "upload").suffix or (".mp4" if kind == "video" else ".png")
     with tempfile.TemporaryDirectory() as tmp:
         path = Path(tmp) / f"upload{suffix}"
         path.write_bytes(data)
-        uploaded = agent.upload_file(path, file.content_type)
-    out = agent.ingest_media(session_id, uploaded["uri"], file.content_type, kind)
-    ledger.append("ingest", {"session_id": session_id, "kind": kind, "bytes": len(data),
-                             "sha256": hashlib.sha256(data).hexdigest(), "file_uri": uploaded["uri"],
-                             "hunch": out["hunch"], "claims": out["claims"], "interaction_id": out["interaction_id"]})
+        uploaded = m.agent.upload_file(path, file.content_type)
+    out = m.agent.ingest_media(session_id, uploaded["uri"], file.content_type, kind)
+    m.ledger.append("ingest", {"session_id": session_id, "kind": kind, "bytes": len(data),
+                               "sha256": hashlib.sha256(data).hexdigest(), "file_uri": uploaded["uri"],
+                               "hunch": out["hunch"], "claims": out["claims"], "interaction_id": out["interaction_id"]})
     return out
 
 

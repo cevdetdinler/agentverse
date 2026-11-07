@@ -17,6 +17,7 @@ PLAN = {"diagnostics": [{"tool": "regime_split", "params": {"by": "path_trend"},
 @pytest.fixture
 def client(tmp_path, monkeypatch):
     monkeypatch.setenv("SKEPTIC_LEDGER", str(tmp_path / "ledger.jsonl"))
+    monkeypatch.setenv("SKEPTIC_SYNTH_LEDGER", str(tmp_path / "synthetic_ledger.jsonl"))
     import importlib
 
     from skeptic import config
@@ -31,12 +32,15 @@ def client(tmp_path, monkeypatch):
             fh.write(json.dumps({"case_id": p.case_id, "task": "markets", "input": {
                 "prices_pence": list(p.prices), "dates": [], "initial_cash_pence": p.initial_cash,
                 "fee_pence": p.fee, "slippage_bps": p.bps}}) + "\n")
-    server.skeptic._paths = synthetic_paths(seed=98, count=120, effect=STRONG)
-    server.skeptic._vault_inputs = vault_file
+    real = server.M("real")
+    real.skeptic._paths = synthetic_paths(seed=98, count=120, effect=STRONG)
+    real.skeptic._vault_inputs = vault_file
     fake = FakeLLM([])
-    server.agent._client = fake
+    real.agent._client = fake
+    server.M("synthetic").agent._client = fake
     yield TestClient(server.app), server, fake
     monkeypatch.delenv("SKEPTIC_LEDGER")
+    monkeypatch.delenv("SKEPTIC_SYNTH_LEDGER")
     importlib.reload(config)
 
 
@@ -99,3 +103,27 @@ def test_index_served(client):
     c, *_ = client
     assert "Skeptic" in c.get("/").text
     assert c.get("/static/app.js").status_code == 200
+
+
+def test_synthetic_market_is_isolated_and_labelled(client):
+    c, server, fake = client
+    cfg = c.get("/api/config?market=synthetic").json()
+    assert cfg["market"] == "synthetic" and cfg["practice_paths"] == 300
+    assert "Synthetic" in cfg["markets"]["synthetic"]["label"]
+    spec = {"name": "dip", "entry": {"all": [{"feature": "return", "lookback": 24, "op": "<=", "value": -0.04}]},
+            "exit": {"hold_bars": 24}}
+    a = c.post("/api/spec/approve", json={"session_id": "s_syn01", "spec": spec, "market": "synthetic"}).json()
+    fake.replies += [json.dumps(PLAN)]
+    att = c.post("/api/attack", json={"session_id": "s_syn01", "fingerprint": a["fingerprint"], "k": 50,
+                                      "market": "synthetic"}).json()
+    assert att["gate"]["status"] == "ELIGIBLE"
+    v = c.post("/api/vault/open", json={"session_id": "s_syn01", "fingerprint": a["fingerprint"], "market": "synthetic"}).json()
+    assert v["verdict"]["label"] == "SURVIVED"
+    # nothing leaked into the real market's ledger
+    real_log = c.get("/api/ledger").json()["entries"]
+    assert not any(e["type"] in ("spec_approved", "vault_result") for e in real_log)
+    # same rules approved on the real market start a fresh lineage there (trial 1, vault not used)
+    b = c.post("/api/spec/approve", json={"session_id": "s_real01", "spec": spec}).json()
+    assert b["trials"] == 1 and not b["contaminated"]
+    tr = c.get(f"/api/trace?fingerprint={a['fingerprint']}&attack=A1&market=synthetic").json()
+    assert tr["steps"][0]["detail"].startswith("Synthetic market")

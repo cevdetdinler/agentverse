@@ -13,6 +13,15 @@ DATA_DIR = ROOT / "data"
 LOG_DIR = ROOT / "logs"
 LEDGER_PATH = Path(os.environ.get("SKEPTIC_LEDGER") or (LOG_DIR / "ledger.jsonl"))
 HUNCH_LIBRARY = DATA_DIR / "hunch_library.json"
+SYNTHETIC_LEDGER_PATH = Path(os.environ.get("SKEPTIC_SYNTH_LEDGER") or (LOG_DIR / "synthetic_ledger.jsonl"))
+
+# Synthetic market (our own generator, skeptic/synthetic.py): a market with a KNOWN planted pattern, so the
+# whole flow - practice gate, one-shot vault, post-vault block - can be shown on data where an edge exists.
+# Always labelled "Synthetic market" in the UI and kept in its own ledger. Never presented as real data.
+SYNTHETIC_MARKET = {
+    "practice_seed": 70011, "vault_seed": 70022, "practice_paths": 300, "vault_paths": 150,
+    "effect": {"kind": "dip", "lookback": 24, "threshold": 0.04, "hold": 24, "drift": 0.004},
+}
 
 # ---------------------------------------------------------------- models
 # IDs from the event builder guide. "reason" = Argon, "fast" = Flash, "router" = Flash-Lite.

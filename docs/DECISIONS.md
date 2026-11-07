@@ -37,3 +37,13 @@ Multi-turn clarifying questions continue the same thread with `previous_interact
 ## D5: Number guard is value-based
 
 The guard checks that every number in the explanation equals some tool output, allowing for rounding and unit conversions. It cannot prove that a number is attached to the right label: "12%" passes if some p-value is 0.1189. The cited attack IDs and the trace drawer let a human check that. This is documented in `skeptic/numberguard.py`.
+
+## D6: A labelled synthetic market for the live vault moment
+
+**Problem:** on real practice data no realistic hunch passes the practice gate. The best reach a median of +40–90 bps, but their sign-test p is 0.09–0.33 and every mean is negative. So the §18 demo step "open the vault, tweak, get blocked" cannot happen live on real data.
+
+**Team decision:** add a second market, selectable in the top bar as **"Synthetic market"**. Its prices come from our own generator (`skeptic/synthetic.py`, seeds in `config.SYNTHETIC_MARKET`) with a planted dip-then-rebound pattern. It has its own ledger, trial counts and vault, and nothing crosses between the two markets (`tests/test_server.py::test_synthetic_market_is_isolated_and_labelled`). The UI always says "Synthetic market … Not real market data", and the trace drawer names the generator and seed. Real data stays the default and is the only source of any reported result.
+
+## D7: A second naive screen in E3
+
+All ten E3 hunches have a negative practice *mean* excess, so the spec's naive screen ("approve if mean excess > 0") rejects every one and the comparison carries no information. We add a second naive screen, "approve if the rule beat buy-and-hold on more than half of the practice paths", which is a common retail "win rate" readout. It was added after seeing that the first screen was degenerate, but **before** any hidden-challenge result existed.

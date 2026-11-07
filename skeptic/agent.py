@@ -84,6 +84,19 @@ class GeminiClient:
         return LLMResponse(interaction_id=it.id, text=text, usage=usage, model=model)
 
 
+    def upload(self, path, mime_type: str, wait_s: float = 90.0) -> dict:
+        """Upload media with the Files API and wait until it is ACTIVE (videos are processed first)."""
+        f = self._client.files.upload(file=str(path), config={"mime_type": mime_type})
+        deadline = time.time() + wait_s
+        while str(getattr(f, "state", "ACTIVE")).upper().endswith("PROCESSING") and time.time() < deadline:
+            time.sleep(2)
+            f = self._client.files.get(name=f.name)
+        state = str(getattr(f, "state", "ACTIVE")).upper()
+        if not state.endswith("ACTIVE"):
+            raise AgentCallError(f"uploaded file not ready (state {state})")
+        return {"uri": f.uri, "name": f.name, "mime_type": mime_type}
+
+
 # ---------------------------------------------------------------- response schemas (sent to Gemini)
 _COND = {
     "type": "object",
@@ -418,6 +431,9 @@ class Agent:
         return {"completions": outs, "cached": False, "interaction_id": resp.interaction_id, "model": resp.model}
 
     # ------------------------------------------------------------------ 6. stretch: media -> hunch
+    def upload_file(self, path, mime_type: str) -> dict:
+        return self.client.upload(path, mime_type)
+
     def ingest_media(self, session_id: str, file_uri: str, mime_type: str, kind: str) -> dict:
         if kind == "video":
             part = {"type": "video", "uri": file_uri, "mime_type": mime_type}

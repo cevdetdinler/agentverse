@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Skeptic</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="wordmark"><span class="dot"></span>Skeptic</div>
+    <nav class="tabs" role="tablist">
+      <button class="tab active" data-tab="test">Test an idea</button>
+      <button class="tab" data-tab="history">History</button>
+      <button class="tab" data-tab="log">Log</button>
+    </nav>
+    <div class="spacer"></div>
+    <span id="chain-badge" class="badge" title="Hash-chained audit log, re-verified from disk">Log …</span>
+    <span id="model-badge" class="badge model" title="Gemini model used for reasoning">…</span>
+  </header>
+
+  <main>
+    <!-- ======================================================= TEST AN IDEA -->
+    <div id="tab-test">
+      <section class="hero">
+        <h1>Would you put money on it?</h1>
+        <p class="lede">Type a trading hunch. Skeptic turns it into exact rules, backtests them on real prices with real costs,
+          then tries to break them before you do.</p>
+        <div class="hunch-wrap">
+          <div class="hunch-box">
+            <div class="hunch-ghost" id="hunch-ghost" aria-hidden="true"></div>
+            <textarea id="hunch" class="hunch-input" rows="1" maxlength="1000" spellcheck="false"
+              placeholder="e.g. BTC bounces back after a big drop"></textarea>
+          </div>
+          <div id="suggest" class="suggest hidden"></div>
+        </div>
+        <div id="variant-pill" class="variant-pill hidden"></div>
+        <div class="row" style="margin-top:16px">
+          <button id="go" class="btn primary">Cross-examine this idea</button>
+          <span class="small muted"><span class="kbd">Tab</span> accepts a suggestion · <span class="kbd">Enter</span> submits</span>
+          <div class="spacer"></div>
+          <label class="btn ghost small" title="Upload a video clip or screenshot of a trading claim">
+            Test a finfluencer clip…
+            <input id="media" type="file" accept="video/mp4,video/quicktime,video/webm,image/png,image/jpeg,image/webp" hidden>
+          </label>
+        </div>
+        <div id="ingest-out"></div>
+      </section>
+
+      <section id="sec-questions" class="step hidden"></section>
+      <section id="sec-rule" class="step hidden"></section>
+      <section id="sec-attacks" class="step hidden"></section>
+      <section id="sec-vault" class="step hidden"></section>
+      <section id="sec-verdict" class="step hidden"></section>
+    </div>
+
+    <!-- ======================================================= HISTORY -->
+    <div id="tab-history" class="hidden">
+      <div class="section-head"><h2>History</h2><span class="muted small">Every idea, every version, every verdict. Trials count per idea.</span></div>
+      <div id="history"></div>
+    </div>
+
+    <!-- ======================================================= LOG -->
+    <div id="tab-log" class="hidden">
+      <div class="section-head">
+        <h2>Audit log</h2>
+        <span class="muted small">Append-only JSONL. Each entry's hash covers the previous hash, so editing any line breaks the chain.</span>
+        <div class="spacer"></div>
+        <button id="verify-btn" class="btn small">Re-verify chain</button>
+      </div>
+      <div id="log-verify" style="margin-bottom:12px"></div>
+      <div class="row" style="margin-bottom:12px" id="log-filters"></div>
+      <div class="card" style="padding:0;overflow:auto"><table class="table" id="log-table"></table></div>
+    </div>
+  </main>
+
+  <aside id="drawer" class="drawer" aria-label="Trace">
+    <div class="row" style="justify-content:space-between;margin-bottom:18px">
+      <h2>Trace</h2><button class="btn ghost" id="drawer-close">Close ✕</button>
+    </div>
+    <div id="drawer-body"></div>
+  </aside>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

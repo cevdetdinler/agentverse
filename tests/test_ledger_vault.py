@@ -101,6 +101,9 @@ def test_vault_full_flow(sk):
 
     res = sk.open_vault("s", fp)
     assert not res["replayed"] and res["verdict"]["label"] == "SURVIVED"
+    final = sk.ledger.last("verdict", fingerprint=fp, stage="final")
+    assert final and final["payload"]["label"] == "SURVIVED" and final["payload"]["decided_on"] == "vault"
+    assert sk.results_bundle(fp)["verdict"]["label"] == "SURVIVED"
     types = [e["type"] for e in sk.ledger.entries()]
     assert types.index("vault_precommit") < types.index("vault_result")
 

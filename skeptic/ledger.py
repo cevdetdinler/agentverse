@@ -20,7 +20,7 @@ GENESIS = "0" * 64
 ENTRY_TYPES = {
     "hunch_submitted", "llm_call", "spec_proposed", "spec_approved", "attack_planned", "attack_run",
     "trial_counted", "vault_precommit", "vault_result", "vault_blocked", "verdict",
-    "number_guard_violation", "suggestion_shown", "limit_hit", "questions_asked", "ingest",
+    "number_guard_violation", "suggestion_shown", "limit_hit", "questions_asked", "ingest", "explanation",
 }
 
 

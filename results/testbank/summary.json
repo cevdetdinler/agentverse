@@ -1,0 +1,244 @@
+{
+  "approve_rule": "Skeptic approves = final verdict SURVIVED; naive approves = practice mean excess > 0",
+  "label": "SELF-ASSESSMENT (our own synthetic generator and checker)",
+  "groups": {
+    "null_guaranteed": {
+      "false_approval_skeptic": {
+        "k": 0,
+        "n": 50,
+        "rate": 0.0,
+        "wilson95": [
+          0.0,
+          0.071
+        ]
+      },
+      "false_approval_naive": {
+        "k": 9,
+        "n": 50,
+        "rate": 0.18,
+        "wilson95": [
+          0.098,
+          0.308
+        ]
+      },
+      "skeptic_labels": {
+        "REJECTED": 45,
+        "INCONCLUSIVE": 5
+      }
+    },
+    "null_presumed": {
+      "false_approval_skeptic": {
+        "k": 0,
+        "n": 30,
+        "rate": 0.0,
+        "wilson95": [
+          0.0,
+          0.114
+        ]
+      },
+      "false_approval_naive": {
+        "k": 2,
+        "n": 30,
+        "rate": 0.067,
+        "wilson95": [
+          0.018,
+          0.213
+        ]
+      },
+      "skeptic_labels": {
+        "REJECTED": 25,
+        "INCONCLUSIVE": 5
+      }
+    },
+    "planted": {
+      "true_approval_skeptic_all": {
+        "k": 5,
+        "n": 30,
+        "rate": 0.167,
+        "wilson95": [
+          0.073,
+          0.336
+        ]
+      },
+      "true_approval_naive_all": {
+        "k": 12,
+        "n": 30,
+        "rate": 0.4,
+        "wilson95": [
+          0.246,
+          0.577
+        ]
+      },
+      "power_curve": [
+        {
+          "strength_drift_per_bar": 0.001,
+          "true_approval_skeptic": {
+            "k": 0,
+            "n": 6,
+            "rate": 0.0,
+            "wilson95": [
+              0.0,
+              0.39
+            ]
+          },
+          "true_approval_naive": {
+            "k": 1,
+            "n": 6,
+            "rate": 0.167,
+            "wilson95": [
+              0.03,
+              0.564
+            ]
+          },
+          "skeptic_labels": {
+            "REJECTED": 6
+          }
+        },
+        {
+          "strength_drift_per_bar": 0.002,
+          "true_approval_skeptic": {
+            "k": 0,
+            "n": 6,
+            "rate": 0.0,
+            "wilson95": [
+              0.0,
+              0.39
+            ]
+          },
+          "true_approval_naive": {
+            "k": 2,
+            "n": 6,
+            "rate": 0.333,
+            "wilson95": [
+              0.097,
+              0.7
+            ]
+          },
+          "skeptic_labels": {
+            "REJECTED": 5,
+            "INCONCLUSIVE": 1
+          }
+        },
+        {
+          "strength_drift_per_bar": 0.003,
+          "true_approval_skeptic": {
+            "k": 1,
+            "n": 6,
+            "rate": 0.167,
+            "wilson95": [
+              0.03,
+              0.564
+            ]
+          },
+          "true_approval_naive": {
+            "k": 1,
+            "n": 6,
+            "rate": 0.167,
+            "wilson95": [
+              0.03,
+              0.564
+            ]
+          },
+          "skeptic_labels": {
+            "SURVIVED": 1,
+            "REJECTED": 5
+          }
+        },
+        {
+          "strength_drift_per_bar": 0.004,
+          "true_approval_skeptic": {
+            "k": 3,
+            "n": 6,
+            "rate": 0.5,
+            "wilson95": [
+              0.188,
+              0.812
+            ]
+          },
+          "true_approval_naive": {
+            "k": 4,
+            "n": 6,
+            "rate": 0.667,
+            "wilson95": [
+              0.3,
+              0.903
+            ]
+          },
+          "skeptic_labels": {
+            "SURVIVED": 3,
+            "REJECTED": 3
+          }
+        },
+        {
+          "strength_drift_per_bar": 0.006,
+          "true_approval_skeptic": {
+            "k": 1,
+            "n": 6,
+            "rate": 0.167,
+            "wilson95": [
+              0.03,
+              0.564
+            ]
+          },
+          "true_approval_naive": {
+            "k": 4,
+            "n": 6,
+            "rate": 0.667,
+            "wilson95": [
+              0.3,
+              0.903
+            ]
+          },
+          "skeptic_labels": {
+            "REJECTED": 5,
+            "SURVIVED": 1
+          }
+        }
+      ]
+    },
+    "p_hacked": {
+      "false_approval_naive": {
+        "k": 4,
+        "n": 20,
+        "rate": 0.2,
+        "wilson95": [
+          0.081,
+          0.416
+        ]
+      },
+      "false_approval_skeptic_honest_trials": {
+        "k": 0,
+        "n": 20,
+        "rate": 0.0,
+        "wilson95": [
+          0.0,
+          0.161
+        ]
+      },
+      "false_approval_skeptic_hidden_trials": {
+        "k": 0,
+        "n": 20,
+        "rate": 0.0,
+        "wilson95": [
+          0.0,
+          0.161
+        ]
+      },
+      "passed_practice_with_hidden_trials": {
+        "k": 1,
+        "n": 20,
+        "rate": 0.05,
+        "wilson95": [
+          0.009,
+          0.236
+        ]
+      }
+    }
+  },
+  "meta": {
+    "finished": "2026-11-07 17:24",
+    "cases": 130,
+    "k": 1000,
+    "seconds": 327
+  }
+}

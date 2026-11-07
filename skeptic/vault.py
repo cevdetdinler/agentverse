@@ -128,8 +128,8 @@ def open_vault(ledger: Ledger, fingerprint: str, session_id: str = "", vault_inp
         "edge_retained_pct": _retained(practice_a1.get("median_excess_bps"), stats["median_excess_bps"]),
     }
     ledger.append("vault_result", result)
-    ledger.append("verdict", {"fingerprint": fingerprint, "idea_id": idea_id, "stage": "final",
-                              "session_id": session_id, **verdict})
+    ledger.append("verdict", {**verdict, "fingerprint": fingerprint, "idea_id": idea_id, "stage": "final",
+                              "decided_on": verdict["stage"], "session_id": session_id})
     return {**result, "replayed": False}
 
 

@@ -5,12 +5,13 @@ Changing a threshold is a code change that shows up in git history, never a runt
 """
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = ROOT / "data"
 LOG_DIR = ROOT / "logs"
-LEDGER_PATH = LOG_DIR / "ledger.jsonl"
+LEDGER_PATH = Path(os.environ.get("SKEPTIC_LEDGER") or (LOG_DIR / "ledger.jsonl"))
 HUNCH_LIBRARY = DATA_DIR / "hunch_library.json"
 
 # ---------------------------------------------------------------- models

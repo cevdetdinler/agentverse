@@ -36,6 +36,7 @@ from skeptic.stats import median_int, wilson_ci  # noqa: E402
 
 OUT = ROOT / "results" / "testbank"
 PRACTICE_N, VAULT_N = 300, 150
+ORACLE_N = 3000  # ground truth for planted rules: median excess on 3,000 fresh paths from the same generator
 PLANT = {"lookback": 24, "threshold": 0.04, "hold": 24}
 STRENGTHS = [0.001, 0.002, 0.003, 0.004, 0.006]
 
@@ -82,9 +83,10 @@ def skeptic_verdict(spec: RuleCard, practice, vault_paths=None, trials: int = 1,
 
 
 def _planted_spec(kind: str, rng: random.Random) -> RuleCard:
-    L = rng.choice([12, 24, 36])
-    x = rng.choice([0.03, 0.04, 0.05])
-    H = rng.choice([12, 24, 36])
+    """A rule close to (not identical with) the planted mechanism. Truth is still checked by the oracle."""
+    L = rng.choice([20, 24, 28])
+    x = rng.choice([0.035, 0.04, 0.045])
+    H = rng.choice([18, 24])
     op, val = ("<=", -x) if kind == "dip" else (">=", x)
     return RuleCard.model_validate({"name": f"planted {kind}", "entry": {"all": [
         {"feature": "return", "lookback": L, "op": op, "value": val}]}, "exit": {"hold_bars": H}})
@@ -112,7 +114,10 @@ def run_case(case: dict) -> dict:
         spec = _planted_spec(kind, rng)
         practice = synthetic_paths(seed * 7 + 1, PRACTICE_N, effect=effect, prefix="pp")
         vault = synthetic_paths(seed * 7 + 2, VAULT_N, effect=effect, prefix="pv")
-        rec.update({"truth": "edge", "strength": d, "kind": kind})
+        oracle = synthetic_paths(seed * 7 + 3, ORACLE_N, effect=effect, prefix="po")
+        rec["oracle_median_excess"] = median_int(evaluate(spec, oracle).excess)
+        rec.update({"truth": "edge" if rec["oracle_median_excess"] > 0 else "no_edge_for_this_rule",
+                    "strength": d, "kind": kind})
     elif g == "p_hacked":
         practice = synthetic_paths(seed * 7 + 1, PRACTICE_N, prefix="hp")
         vault = synthetic_paths(seed * 7 + 2, VAULT_N, prefix="hv")
@@ -174,7 +179,9 @@ def summarise(recs: list[dict]) -> dict:
         s["groups"][g] = {"false_approval_skeptic": rate([r["skeptic_approve"] for r in rs]),
                           "false_approval_naive": rate([r["naive_approve"] for r in rs]),
                           "skeptic_labels": _count([r["skeptic"]["label"] for r in rs])}
-    rs = by("planted")
+    rs = [r for r in by("planted") if r["truth"] == "edge"]
+    s["groups"]["planted_excluded"] = {"n": len(by("planted")) - len(rs),
+                                       "reason": "oracle median excess <= 0 on 3,000 fresh paths: this rule does not exploit the effect"}
     curve = []
     for d in sorted({r["strength"] for r in rs}):
         sub = [r for r in rs if r["strength"] == d]
@@ -203,6 +210,10 @@ def _count(labels):
 
 def _fmt(r: dict) -> str:
     return f"{r['k']}/{r['n']} = {100 * r['rate']:.0f}% (95% CI {100 * r['wilson95'][0]:.0f}–{100 * r['wilson95'][1]:.0f}%)"
+
+
+def _pct(r: dict) -> str:
+    return f"{r['k']}/{r['n']}"
 
 
 def report(s: dict, meta: dict) -> str:
@@ -248,10 +259,15 @@ def report(s: dict, meta: dict) -> str:
         "",
         "## Reading this honestly",
         "",
-        "- The naive screen approves roughly half of the no-edge rules: its false-approval rate is the cost Skeptic exists to cut.",
-        "- Skeptic trades power for safety. At weak planted strengths it usually says REJECTED or INCONCLUSIVE, which is the",
-        "  intended behaviour when the evidence is thin.",
-        "- Synthetic random walks are not markets. These rates say nothing about real-world profitability.",
+        f"- On no-edge rules the naive screen approved {_pct(g['null_guaranteed']['false_approval_naive'])} (random walks), "
+        f"{_pct(g['null_presumed']['false_approval_naive'])} (real data) and {_pct(g['p_hacked']['false_approval_naive'])} (p-hacked); "
+        f"Skeptic approved {_pct(g['null_guaranteed']['false_approval_skeptic'])}, {_pct(g['null_presumed']['false_approval_skeptic'])} "
+        f"and {_pct(g['p_hacked']['false_approval_skeptic_hidden_trials'])} (even with the tries hidden).",
+        f"- Planted rules whose oracle median excess (3,000 fresh paths) was not positive are excluded from the power table "
+        f"({g['planted_excluded']['n']} excluded): a planted effect does not mean every nearby rule profits from it.",
+        "- Skeptic trades power for safety: at weak strengths it says REJECTED or INCONCLUSIVE. With 6 rules per strength the",
+        "  confidence intervals are wide; read the trend, not single cells.",
+        "- Synthetic random walks are not markets. None of these rates says anything about real-world profitability.",
         "",
         "Reproduce: `.venv\\Scripts\\python.exe eval\\testbank.py` (seeds are fixed in `build_cases`).",
     ]

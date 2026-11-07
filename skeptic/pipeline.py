@@ -6,6 +6,7 @@ Every step writes to the hash-chained ledger.
 """
 from __future__ import annotations
 
+import re
 from typing import Callable, Optional
 
 from pydantic import ValidationError
@@ -27,6 +28,9 @@ from .ledger import Ledger
 from .spec import RuleCard, new_idea_id
 from .vault import is_contaminated, open_vault, vault_status
 from .verdict import decide
+
+
+_BAR_RE = re.compile(r"1\s*bar\s*(=|is|equals|treated as)\s*1\s*hour", re.I)
 
 
 class LimitError(ValueError):
@@ -74,8 +78,9 @@ class Skeptic:
         if idea_id is None:
             idea_id = card.idea_id or new_idea_id()
         card = card.model_copy(update={"idea_id": idea_id, "parent_fingerprint": parent_fingerprint or card.parent_fingerprint})
-        if not card.assumptions or config.BAR_ASSUMPTION not in card.assumptions:
-            card = card.model_copy(update={"assumptions": [config.BAR_ASSUMPTION, *card.assumptions]})
+        if config.BAR_ASSUMPTION not in card.assumptions:
+            others = [a for a in card.assumptions if not _BAR_RE.search(a)]
+            card = card.model_copy(update={"assumptions": [config.BAR_ASSUMPTION, *others]})
         self.ledger.append("spec_approved", {
             "session_id": session_id, "fingerprint": fp, "idea_id": idea_id,
             "parent_fingerprint": card.parent_fingerprint, "spec": card.model_dump(mode="json"),

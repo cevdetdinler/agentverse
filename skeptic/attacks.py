@@ -50,13 +50,17 @@ class Evaluation:
         return [r["excess_bps"] for r in self.rows]
 
 
-def evaluate(spec: RuleCard, paths, fee_mult: int = 1, bps_mult: int = 1, positions=None) -> Evaluation:
+def evaluate(spec: RuleCard, paths, fee_mult: int = 1, bps_mult: int = 1, positions=None,
+             stress_benchmark: bool = True) -> Evaluation:
+    """stress_benchmark=False keeps buy-and-hold at real costs while the strategy pays the multiplied
+    costs (the conservative cost stress: otherwise a rule that rarely trades 'gains' when costs rise)."""
     rows, all_pos = [], []
     for idx, p in enumerate(paths):
         pos = positions[idx] if positions is not None else compute_positions(spec, p.prices)
         fee, bps = p.fee * fee_mult, p.bps * bps_mult
         sim = simulate(p.prices, pos, p.initial_cash, fee, bps)
-        bh = buy_and_hold_final(p.prices, p.initial_cash, fee, bps)
+        bh = (buy_and_hold_final(p.prices, p.initial_cash, fee, bps) if stress_benchmark
+              else buy_and_hold_final(p.prices, p.initial_cash, p.fee, p.bps))
         rows.append(
             {
                 "case_id": p.case_id,
@@ -360,7 +364,7 @@ def a3_wobble(spec: RuleCard, paths, ev: Evaluation) -> AttackResult:
 
 # ------------------------------------------------------------------ A4 cost stress
 def _cost_row(spec, paths, ev, mult: int) -> dict:
-    stressed = evaluate(spec, paths, fee_mult=mult, bps_mult=mult, positions=ev.positions)
+    stressed = evaluate(spec, paths, fee_mult=mult, bps_mult=mult, positions=ev.positions, stress_benchmark=False)
     agg = aggregate(stressed.rows)
     return {"multiplier": mult, "median_excess_bps": agg["median_excess_bps"], "wins": agg["wins"],
             "losses": agg["losses"], "sign_p": None if agg["sign_p"] is None else round(agg["sign_p"], 4)}
@@ -377,7 +381,7 @@ def a4_cost_stress(spec: RuleCard, paths, ev: Evaluation) -> AttackResult:
     numbers = {f"median_excess_x{r['multiplier']}_bps": r["median_excess_bps"] for r in rows}
     numbers["table"] = rows
     summary = (
-        "With fees and slippage doubled the median excess is "
+        "If the rule paid double fees and slippage (buy-and-hold at real costs) its median excess would be "
         f"{at_gate['median_excess_bps']} bps; tripled it is {rows[-1]['median_excess_bps']} bps "
         f"(at real costs: {rows[0]['median_excess_bps']} bps)."
     )
@@ -387,7 +391,7 @@ def a4_cost_stress(spec: RuleCard, paths, ev: Evaluation) -> AttackResult:
         hypothesis="The edge survives if trading is more expensive than the data assumes.",
         numbers=numbers,
         passed=passed,
-        threshold=f"median excess > 0 with fees x{gate_m} and slippage x{gate_m}",
+        threshold=f"median excess > 0 when the rule pays fees x{gate_m} and slippage x{gate_m} (buy-and-hold keeps real costs)",
         inputs={"multipliers": [1, *config.COST_MULTIPLIERS], "fingerprint": spec.fingerprint},
         summary=summary,
         chart={"type": "bars", "labels": [f"x{r['multiplier']}" for r in rows], "values": [r["median_excess_bps"] for r in rows],

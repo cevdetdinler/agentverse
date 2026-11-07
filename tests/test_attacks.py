@@ -137,3 +137,17 @@ def test_battery_is_deterministic():
     a = run_battery(DIP, paths, trials=2, k=50)
     b = run_battery(DIP, paths, trials=2, k=50)
     assert [r.numbers for r in a["results"]] == [r.numbers for r in b["results"]]
+
+
+def test_cost_stress_never_rewards_higher_costs():
+    """Counterexample from a live run: a rarely-trading rule must not 'improve' when costs rise."""
+    paths = synthetic_paths(seed=21, count=80)
+    ev = evaluate(DIP, paths)
+    t = attacks.a4_cost_stress(DIP, paths, ev).numbers["table"]
+    per_path = [evaluate(DIP, paths, fee_mult=m, bps_mult=m, positions=ev.positions, stress_benchmark=False).excess
+                for m in (1, 2, 3)]
+    # Integer share rounding means a costlier entry can buy one share fewer and so lose slightly less on a
+    # losing trade; that is real, so require it of almost every path, not all of them.
+    worse = sum(a >= b >= c for a, b, c in zip(*per_path))
+    assert worse >= 0.95 * len(paths)
+    assert t[0]["median_excess_bps"] >= t[1]["median_excess_bps"] >= t[2]["median_excess_bps"]

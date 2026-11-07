@@ -3,14 +3,12 @@ import random
 import numpy as np
 import pytest
 
-from eval.synthetic import synthetic_paths
+from eval.synthetic import random_spec, synthetic_paths
 from skeptic import attacks
 from skeptic.attacks import (
-    _segments,
     a2_permutation,
     a6_trials,
     evaluate,
-    random_entry_positions,
     run_battery,
     run_diagnostic,
 )
@@ -22,21 +20,28 @@ DIP = RuleCard.model_validate({
 })
 
 
-def test_random_entry_positions_preserve_lengths_and_bounds():
+def test_surrogates_keep_endpoints_and_moves():
     rng = np.random.default_rng(0)
-    lengths = [5, 1, 9, 3]
-    n = 40
-    pos = random_entry_positions(lengths, n, 500, rng)
-    assert pos.shape == (500, n)
-    for row in pos:
-        assert not row[n - 1]  # never a target on the last bar (no next-bar fill)
-        assert sorted(_segments(row.tolist(), n - 1)) == sorted(lengths)
+    p = synthetic_paths(seed=1, count=1)[0].prices
+    S = attacks.shuffled_surrogates(p, 50, rng)
+    assert S.shape == (50, len(p))
+    assert (S[:, 0] == p[0]).all()
+    assert np.abs(S[:, -1] - p[-1]).max() <= 2  # integer rounding only
+    real = np.sort(np.diff(np.log(np.asarray(p, float))))
+    for row in S[:5]:
+        assert np.allclose(np.sort(np.diff(np.log(row.astype(float)))), real, atol=1e-3)
 
 
-def test_random_entry_positions_tight_fit():
-    rng = np.random.default_rng(1)
-    pos = random_entry_positions([3, 3], 8, 50, rng)  # 7 decision bars, 3+1+3 = exactly full
-    assert all(row.tolist() == [True, True, True, False, True, True, True, False] for row in pos)
+def test_shuffled_test_is_calibrated_on_null_data():
+    """The in-path random-entry permutation gave p < 0.05 for ~22% of random rules on pure random walks.
+    The shuffled-returns test must stay near the nominal 5% (40 rules: allow up to 5 = 12.5%)."""
+    rng = random.Random(77)
+    hits = 0
+    for i in range(40):
+        spec = random_spec(rng)
+        paths = synthetic_paths(500 + i, 60)
+        hits += a2_permutation(spec, paths, evaluate(spec, paths), k=100, seed=i).numbers["p_perm"] < 0.05
+    assert hits <= 5, hits
 
 
 def test_permutation_p_is_not_small_on_null_data():

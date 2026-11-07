@@ -13,7 +13,9 @@ from typing import Literal, Optional
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from . import config
-from .features import condition_series
+import numpy as np
+
+from .features import condition_array, condition_series
 
 FeatureName = Literal[
     "return",
@@ -218,6 +220,49 @@ def compute_positions(spec: RuleCard, prices) -> list[bool]:
                     in_pos = False
                     last_exit = i
         out[i] = in_pos
+    return out
+
+
+def compute_positions_batch(spec: RuleCard, prices: np.ndarray) -> np.ndarray:
+    """compute_positions for K price paths at once (K x n). Same state machine, vectorised over paths.
+
+    Used for surrogate paths in A2; tests/test_spec_features.py checks it equals the scalar version.
+    """
+    P = np.asarray(prices, dtype=np.float64)
+    k, n = P.shape
+    entry_ok = np.ones((k, n), dtype=bool)
+    for c in spec.entry.all:
+        entry_ok &= condition_array(c.feature, c.params(), c.op, c.value, P)
+    exit_any = np.zeros((k, n), dtype=bool)
+    for c in spec.exit.any:
+        exit_any |= condition_array(c.feature, c.params(), c.op, c.value, P)
+    hold, tp, sl, cooldown = spec.exit.hold_bars, spec.exit.take_profit, spec.exit.stop_loss, spec.cooldown_bars
+    rows = np.arange(k)
+    out = np.zeros((k, n), dtype=bool)
+    in_pos = np.zeros(k, dtype=bool)
+    entry_bar = np.full(k, n, dtype=np.int64)
+    last_exit = np.zeros(k, dtype=np.int64)
+    has_exit = np.zeros(k, dtype=bool)
+    for i in range(n):
+        can_enter = ~in_pos & entry_ok[:, i] & (~has_exit | (i - last_exit > cooldown))
+        active = in_pos & (i >= entry_bar)
+        ex = np.zeros(k, dtype=bool)
+        if active.any():
+            ref = P[rows, np.minimum(entry_bar, n - 1)]
+            move = P[:, i] / ref - 1.0
+            cond = exit_any[:, i].copy()
+            if hold is not None:
+                cond |= (i - entry_bar) >= hold
+            if tp is not None:
+                cond |= move >= tp
+            if sl is not None:
+                cond |= move <= -sl
+            ex = active & cond
+        in_pos = (in_pos & ~ex) | can_enter
+        entry_bar = np.where(can_enter, i + 1, entry_bar)
+        last_exit = np.where(ex, i, last_exit)
+        has_exit |= ex
+        out[:, i] = in_pos
     return out
 
 

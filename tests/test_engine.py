@@ -11,6 +11,8 @@ from skeptic.engine import (
     max_drawdown_bps,
     simulate,
     simulate_batch,
+    simulate_batch_paths,
+    buy_and_hold_batch,
 )
 from skeptic.spec import compute_positions
 
@@ -89,3 +91,18 @@ def test_batch_equals_scalar_on_strategy_positions():
 def test_max_drawdown_integer():
     assert max_drawdown_bps([100, 120, 90, 130]) == 2500
     assert max_drawdown_bps([100, 101, 102]) == 0
+
+
+def test_batch_paths_equals_scalar():
+    rng = random.Random(3)
+    nrng = np.random.default_rng(3)
+    for i in range(30):
+        paths = [random_walk_path(rng, f"q{i}-{j}", n=70) for j in range(8)]
+        P = np.array([p.prices for p in paths])
+        pos = nrng.random(P.shape) < 0.4
+        cash, fee, bps = 500000, 75, 12
+        finals = simulate_batch_paths(P, pos, cash, fee, bps)
+        bhs = buy_and_hold_batch(P, cash, fee, bps)
+        for j, p in enumerate(paths):
+            assert finals[j] == simulate(p.prices, pos[j].tolist(), cash, fee, bps).final_cash
+            assert bhs[j] == buy_and_hold_final(p.prices, cash, fee, bps)

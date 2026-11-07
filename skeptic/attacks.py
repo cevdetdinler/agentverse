@@ -14,8 +14,8 @@ from pydantic import ValidationError
 
 from . import config
 from .data import PricePath
-from .engine import buy_and_hold_final, simulate, simulate_batch
-from .spec import RuleCard, compute_positions
+from .engine import buy_and_hold_batch, buy_and_hold_final, simulate, simulate_batch_paths
+from .spec import RuleCard, compute_positions, compute_positions_batch
 from .stats import aggregate, bootstrap_median_ci, median_int, sign_test_p
 
 ALPHA = config.GATE["alpha"]
@@ -129,72 +129,38 @@ def a1_baseline(spec: RuleCard, paths, ev: Evaluation, seed: int = config.SEEDS[
     )
 
 
-# ------------------------------------------------------------------ A2 random-entry permutation
-def _segments(pos: list[bool], decisions: int) -> list[int]:
-    lengths, run = [], 0
-    for i in range(decisions):
-        if pos[i]:
-            run += 1
-        elif run:
-            lengths.append(run)
-            run = 0
-    if run:
-        lengths.append(run)
-    return lengths
+# ------------------------------------------------------------------ A2 shuffled-returns (timing) test
+def shuffled_surrogates(prices, k: int, rng: np.random.Generator) -> np.ndarray:
+    """K copies of a path rebuilt from its own one-bar log returns in random order.
 
-
-def random_entry_positions(lengths: list[int], n: int, k: int, rng: np.random.Generator) -> np.ndarray:
-    """K random target arrays with the same holding lengths, non-overlapping (>= 1 flat bar between),
-    placed uniformly over the decision bars 0..n-2."""
-    out = np.zeros((k, n), dtype=bool)
-    m = len(lengths)
-    if m == 0:
-        return out
-    decisions = n - 1
-    slack = decisions - sum(lengths) - (m - 1)
-    if slack < 0:
-        raise ValueError("segments do not fit")
-    h = np.tile(np.asarray(lengths, dtype=np.int64), (k, 1))
-    h = rng.permuted(h, axis=1)
-    # choose m sorted distinct "bar" positions among slack + m slots -> gaps (stars and bars)
-    keys = rng.random((k, slack + m))
-    combo = np.sort(np.argsort(keys, axis=1)[:, :m], axis=1)
-    gaps = np.empty((k, m), dtype=np.int64)
-    gaps[:, 0] = combo[:, 0]
-    if m > 1:
-        gaps[:, 1:] = combo[:, 1:] - combo[:, :-1] - 1
-    # start_j = sum(gaps[:j+1]) + sum(h[:j]) + j
-    starts = np.cumsum(gaps, axis=1) + np.concatenate([np.zeros((k, 1), np.int64), np.cumsum(h, axis=1)[:, :-1]], axis=1) \
-        + np.arange(m)[None, :]
-    diff = np.zeros((k, n + 1), dtype=np.int64)
-    rows = np.repeat(np.arange(k), m)
-    np.add.at(diff, (rows, starts.ravel()), 1)
-    np.add.at(diff, (rows, (starts + h).ravel()), -1)
-    out[:] = np.cumsum(diff[:, :n], axis=1) > 0
-    return out
+    Same start price, same end price (up to integer rounding), same set of moves and volatility,
+    but no information in the ORDER of moves. Under the null "the rule's timing carries no
+    information", the real path is exchangeable with these surrogates.
+    """
+    p = np.asarray(prices, dtype=np.float64)
+    r = np.diff(np.log(p))
+    order = np.argsort(rng.random((k, len(r))), axis=1)
+    logp = np.log(p[0]) + np.concatenate([np.zeros((k, 1)), np.cumsum(r[order], axis=1)], axis=1)
+    return np.maximum(1, np.rint(np.exp(logp))).astype(np.int64)
 
 
 def a2_permutation(spec: RuleCard, paths, ev: Evaluation, k: int = config.PERM_K_DEFAULT,
                    seed: int = config.SEEDS["permutation"]) -> AttackResult:
+    """Shuffled-returns test. (Replaces the in-path random-entry permutation: see docs/DECISIONS.md D1.)"""
     if not 1 <= k <= config.LIMITS["max_perm_k"]:
         raise ValueError(f"permutation K must be 1..{config.LIMITS['max_perm_k']}")
     rng = np.random.default_rng(seed)
     total = np.zeros(k, dtype=np.float64)
-    for p, pos, row in zip(paths, ev.positions, ev.rows):
-        n = len(p.prices)
-        lengths = _segments(pos, n - 1)
-        bh = row["bh_final"]
-        if not lengths:
-            total += row["excess_bps"]
-            continue
-        perm = random_entry_positions(lengths, n, k, rng)
-        finals = simulate_batch(p.prices, perm, p.initial_cash, p.fee, p.bps)
+    for p in paths:
+        surrogate = shuffled_surrogates(p.prices, k, rng)
+        pos = compute_positions_batch(spec, surrogate)
+        finals = simulate_batch_paths(surrogate, pos, p.initial_cash, p.fee, p.bps)
+        bh = buy_and_hold_batch(surrogate, p.initial_cash, p.fee, p.bps)
         total += (finals - bh) * 10000 // p.initial_cash
     perm_means = total / len(paths)
     observed = float(np.mean(ev.excess))
     exceed = int(np.sum(perm_means >= observed))
     p_perm = (1 + exceed) / (1 + k)
-    pct_rank = round(100.0 * float(np.mean(perm_means < observed)), 1)
     passed = p_perm < ALPHA
     numbers = {
         "observed_mean_excess_bps": round(observed, 1),
@@ -203,23 +169,25 @@ def a2_permutation(spec: RuleCard, paths, ev: Evaluation, k: int = config.PERM_K
         "perm_at_or_above_observed": exceed,
         "K": k,
         "p_perm": round(p_perm, 4),
-        "observed_percentile": pct_rank,
+        "observed_percentile": round(100.0 * float(np.mean(perm_means < observed)), 1),
     }
     summary = (
-        f"Random entries with the same number of trades and the same holding lengths matched or beat the real "
-        f"entries in {exceed} of {k} shuffles (p_perm = {p_perm:.4f}). Real mean excess {observed:.1f} bps vs "
-        f"a typical random {numbers['perm_mean_excess_median_bps']} bps."
+        f"We rebuilt every practice path {k} times from its own price moves in random order (same start, end and "
+        f"volatility, but no timing information) and reran the exact rule. The shuffled markets did at least as well "
+        f"as the real ones in {exceed} of {k} cases (p_perm = {p_perm:.4f}). Real mean excess {observed:.1f} bps vs a "
+        f"typical shuffled {numbers['perm_mean_excess_median_bps']} bps."
     )
     return AttackResult(
         id="A2",
-        name="Random-entry permutation",
-        hypothesis="The entry signal adds value beyond being in the market for the same amount of time.",
+        name="Shuffled-returns test",
+        hypothesis="The rule profits from the ORDER of price moves (real timing information), not from luck.",
         numbers=numbers,
         passed=passed,
         threshold=f"p_perm < {ALPHA} (before the too-many-tries adjustment in A6)",
-        inputs={"K": k, "seed": seed, "paths": len(paths), "fingerprint": spec.fingerprint},
+        inputs={"K": k, "seed": seed, "paths": len(paths), "fingerprint": spec.fingerprint,
+                "null": "one-bar log returns shuffled within each path"},
         summary=summary,
-        chart={**_hist(perm_means.tolist()), "label": "mean excess of random-entry shuffles (bps)", "marker": round(observed, 1)},
+        chart={**_hist(perm_means.tolist()), "label": "mean excess on shuffled-return markets (bps)", "marker": round(observed, 1)},
     )
 
 

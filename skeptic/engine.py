@@ -144,3 +144,42 @@ def simulate_batch(prices, positions: np.ndarray, initial_cash: int, fee: int, b
     if held.any():
         cash = np.where(held, cash + shares * sell_fill(int(prices[-1]), bps) - fee, cash)
     return cash
+
+
+def simulate_batch_paths(prices: np.ndarray, positions: np.ndarray, initial_cash: int, fee: int, bps: int) -> np.ndarray:
+    """Final cash for K different price paths (K x n int64), each with its own target positions."""
+    P = np.asarray(prices, dtype=np.int64)
+    pos = np.asarray(positions, dtype=bool)
+    k, n = P.shape
+    cash = np.full(k, initial_cash, dtype=np.int64)
+    shares = np.zeros(k, dtype=np.int64)
+    for i in range(n - 1):
+        want = pos[:, i]
+        nxt = P[:, i + 1]
+        buy = want & (shares == 0)
+        sell = (~want) & (shares > 0)
+        if buy.any():
+            fill = (nxt * (10000 + bps) + 9999) // 10000
+            units = np.maximum(0, cash - fee) // fill
+            do = buy & (units > 0)
+            cash = np.where(do, cash - units * fill - fee, cash)
+            shares = np.where(do, shares + units, shares)
+        if sell.any():
+            fill = nxt * (10000 - bps) // 10000
+            cash = np.where(sell, cash + shares * fill - fee, cash)
+            shares = np.where(sell, 0, shares)
+        if (cash < 0).any():
+            raise EngineError("order cannot cover fees; borrowing is not supported")
+    held = shares > 0
+    if held.any():
+        last = P[:, -1] * (10000 - bps) // 10000
+        cash = np.where(held, cash + shares * last - fee, cash)
+    return cash
+
+
+def buy_and_hold_batch(prices: np.ndarray, initial_cash: int, fee: int, bps: int) -> np.ndarray:
+    P = np.asarray(prices, dtype=np.int64)
+    buy = (P[:, 1] * (10000 + bps) + 9999) // 10000
+    sell = P[:, -1] * (10000 - bps) // 10000
+    units = np.maximum(0, initial_cash - fee) // buy
+    return initial_cash + units * (sell - buy) - np.where(units > 0, 2 * fee, 0)

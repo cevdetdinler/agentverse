@@ -7,7 +7,7 @@ from pydantic import ValidationError
 
 from eval.synthetic import random_spec, random_walk_path
 from skeptic.features import feature_series, condition_series
-from skeptic.spec import RuleCard, compute_positions, positions_to_action
+from skeptic.spec import RuleCard, compute_positions, compute_positions_batch, positions_to_action
 
 
 def card(entry, exit_=None, cooldown=0):
@@ -154,3 +154,14 @@ def test_look_ahead_detector_would_catch_a_cheat():
     full = cheating_positions(prices)
     mismatches = sum(cheating_positions(prices[: k + 1])[k] != full[k] for k in range(len(prices)))
     assert mismatches > 0
+
+
+def test_batch_positions_equal_scalar():
+    rng = random.Random(31)
+    for trial in range(120):
+        spec = random_spec(rng)
+        paths = [random_walk_path(rng, f"b{trial}-{j}", n=90) for j in range(6)]
+        P = np.array([p.prices for p in paths])
+        batch = compute_positions_batch(spec, P)
+        for j, p in enumerate(paths):
+            assert batch[j].tolist() == compute_positions(spec, p.prices), (spec.rules_dict(), j)

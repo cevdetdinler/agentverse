@@ -1,6 +1,6 @@
 # Build status (2026-11-08)
 
-All milestones M0–M9 are done, committed and pushed to https://github.com/cevdetdinler/agentverse. 101 tests pass.
+All milestones M0–M9 are done and committed; GitHub has everything up to e0ca351 (push the newer commits). 105 tests pass.
 
 | Item | State |
 |---|---|

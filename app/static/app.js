@@ -256,7 +256,7 @@ function renderSuggest() {
   }
   if (!l1.length && !l2.length || document.activeElement !== $("#hunch")) { box.classList.add("hidden"); return; }
   let html = "";
-  if (l2.length) html += `<div class="group"><div class="label">Gemini · ${esc(S.config.models.router)} · precise wording</div>${l2.map((t) => `<div class="item" data-text="${esc(t)}">${esc(t)}</div>`).join("")}</div>`;
+  if (l2.length) html += `<div class="group"><div class="label">Gemini · ${esc(S.config.models.router)} · finishing your idea</div>${l2.map((t) => `<div class="item" data-text="${esc(t)}">${esc(t)}</div>`).join("")}</div>`;
   if (l1.length) html += `<div class="group"><div class="label">Instant · your ideas + examples (no AI)</div>${l1.map((h) => `<div class="item" data-text="${esc(h.text)}">${esc(h.text)}<span class="hint">${h.src}</span></div>`).join("")}</div>`;
   box.innerHTML = html;
   box.classList.remove("hidden");

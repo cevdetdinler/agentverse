@@ -172,3 +172,13 @@ def test_planner_failure_does_not_block_battery(sk):
 
     out = sk.run_attacks("s", a["fingerprint"], planner=broken, k=50)
     assert out["plan_error"] and len(out["results"]) == 6
+
+
+def test_bar_assumption_is_not_duplicated(sk):
+    """Regression: _BAR_RE once began with a backspace byte, so Gemini's own "1 bar = 1 hour" was never removed."""
+    from skeptic import config
+    spec = dict(DIP, assumptions=["Assume 1 bar = 1 hour.", "Drop measured close-to-close"])
+    out = sk.approve_spec("s", spec)
+    bar_lines = [a for a in out["spec"]["assumptions"] if "1 bar" in a.lower()]
+    assert bar_lines == [config.BAR_ASSUMPTION]
+    assert "Drop measured close-to-close" in out["spec"]["assumptions"]

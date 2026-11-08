@@ -30,7 +30,7 @@ from .vault import is_contaminated, open_vault, vault_status
 from .verdict import decide
 
 
-_BAR_RE = re.compile(r"1\s*bar\s*(=|is|equals|treated as)\s*1\s*hour", re.I)
+_BAR_RE = re.compile(r"\b1\s*bar\s*(=|is|equals|treated as)\s*1\s*hour", re.I)
 
 
 class LimitError(ValueError):

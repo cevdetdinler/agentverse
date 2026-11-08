@@ -21,12 +21,12 @@ def test_moves_become_matching_ideas():
         row("ETHUSDT", 0.2, 3000, 3020, 2990),        # calm
     ])
     text = " | ".join(i["hunch"] for i in ideas)
-    assert "Buy Bitcoin after it falls 4% or more over 24 hours" in text
-    assert "Buy Solana after it rises 6% or more over 24 hours" in text
+    assert "Bitcoin bounces back after a 4% drop in a day" in text
+    assert "Solana keeps going up after a 6% jump in a day" in text
     assert any(i["kind"] == "calm" and i["coin"] == "Ethereum" for i in ideas)
     btc = next(i for i in ideas if i["coin"] == "Bitcoin")
     assert btc["fact"].startswith("Bitcoin $95,000") and "down 4.3%" in btc["fact"]
-    assert ideas[0]["coin"] in ("Solana", "Bitcoin")  # biggest moves first
+    assert ideas[0]["coin"] in ("Solana", "Bitcoin")  # real moves first
 
 
 def test_quiet_day_is_still_varied():
@@ -37,6 +37,25 @@ def test_quiet_day_is_still_varied():
     assert all(kinds.count(k) <= 2 for k in kinds)
     assert all(sum(1 for i in ideas if i["coin"] == c) <= 2 for c in {i["coin"] for i in ideas})
     assert len({i["hunch"] for i in ideas}) == len(ideas)
+
+
+def test_ideas_sound_like_people_not_rules():
+    rows = [row(sym, 0.1 * i, 100 + i, 101 + i, 99 + i) for i, sym in enumerate(T.COINS)]
+    rows.append(row("DOGEUSDT", -1.4, 0.07, 0.072, 0.069))
+    ideas = T.ideas_from_tickers(rows)
+    for i in ideas:
+        h = i["hunch"].lower()
+        words = h.split()
+        assert len(words) <= 14, h  # short, like a post
+        assert "bar" not in words and "bars" not in words, h
+        assert "sell" not in h and "stop-loss" not in h and "hold for" not in h, h  # exits are asked for later
+    coins = [i["coin"] for i in ideas]
+    assert coins[0] == "Bitcoin" and "Dogecoin" not in coins  # quiet day: familiar coins first
+
+
+def test_a_real_move_beats_coin_priority():
+    rows = [row("BTCUSDT", 0.1, 100, 101, 99), row("DOGEUSDT", -9.0, 0.07, 0.08, 0.069)]
+    assert T.ideas_from_tickers(rows)[0]["coin"] == "Dogecoin"
 
 
 def test_bad_rows_are_skipped():

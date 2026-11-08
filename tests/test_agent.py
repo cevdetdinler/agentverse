@@ -144,3 +144,12 @@ def test_non_timeout_errors_are_not_retried(tmp_path):
     with pytest.raises(AgentCallError):
         ag.translate_hunch("s", "hunch")
     assert len(fake.calls) == 1
+
+
+def test_suggestions_drop_rule_jargon(tmp_path):
+    outs = {"completions": ["Bitcoin bounces back after a big drop",
+                            "Bitcoin bounces back after a fall of 5% over 24 bars, hold for 72 bars",
+                            "Bitcoin bounces back after a crash"]}
+    ag, _ = agent(tmp_path, [json.dumps(outs)])
+    got = ag.suggest_completions("s", "Bitcoin bounces back", [])["completions"]
+    assert got == ["Bitcoin bounces back after a big drop", "Bitcoin bounces back after a crash"]

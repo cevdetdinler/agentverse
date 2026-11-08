@@ -19,7 +19,7 @@ COINS = {"BTCUSDT": "Bitcoin", "ETHUSDT": "Ethereum", "SOLUSDT": "Solana", "XRPU
          "DOGEUSDT": "Dogecoin", "BNBUSDT": "BNB"}
 TICKER_URL = "https://data-api.binance.vision/api/v3/ticker/24hr"
 CACHE_SECONDS = 300
-MAX_IDEAS = 6
+MAX_IDEAS = 5
 
 _cache: dict = {"at": 0.0, "data": None}
 _lock = threading.Lock()
@@ -50,58 +50,60 @@ def _price(x: float) -> str:
     return f"${x:,.0f}" if x >= 100 else f"${x:,.2f}" if x >= 1 else f"${x:,.4f}"
 
 
+# Big, familiar coins first: on a quiet day the box should talk about Bitcoin and Ethereum, not Dogecoin.
+PRIORITY = {"Bitcoin": 3.0, "Ethereum": 2.5, "Solana": 2.0, "XRP": 1.5, "BNB": 1.0, "Dogecoin": 0.5}
+
+
 def _candidates(coin: str, change: float, last: float, high: float, low: float) -> list[dict]:
-    """Ideas for one coin, most fitting first. Every hunch is expressible as Skeptic rules."""
+    """Ideas for one coin, most fitting first, phrased the way people actually say them.
+
+    Short and casual on purpose ("Bitcoin bounces back after a 4% drop in a day"): the exact thresholds, holding
+    time and exit are what Skeptic's clarifying questions are for. Every idea is still testable as rules."""
     size = abs(change)
-    step = max(2, int(size))  # a round threshold at or just below today's move
+    step = max(2, int(size))  # a round number at or just below today's move
     where = (last - low) / (high - low) if high > low else 0.5
     below_high = (1 - last / high) * 100
     out = []
     if change <= -2:
-        out.append(("dip", size, f"down {size:.1f}% in the last 24 hours",
-                    f"Buy {coin} after it falls {step}% or more over 24 hours, and sell 24 hours later"))
+        out.append(("dip", size, f"down {size:.1f}% today", f"{coin} bounces back after a {step}% drop in a day"))
     elif change >= 2:
-        out.append(("rally", size, f"up {size:.1f}% in the last 24 hours",
-                    f"Buy {coin} after it rises {step}% or more over 24 hours, and hold for 24 hours"))
+        out.append(("rally", size, f"up {size:.1f}% today", f"{coin} keeps going up after a {step}% jump in a day"))
     if where >= 0.9 and high > low:
-        out.append(("near_high", 1.5 + size / 10, "trading near its 24-hour high",
-                    f"Buy {coin} when it breaks above its 24-hour high, hold for 12 hours with a 3% stop-loss"))
+        out.append(("near_high", 1.5 + size / 10, "near today’s high", f"{coin} keeps climbing when it breaks its daily high"))
     elif where <= 0.1 and below_high >= 1.5:
         d = max(2, int(below_high))
-        out.append(("near_low", 1.5 + below_high / 10, f"near its 24-hour low, {below_high:.1f}% below today’s high",
-                    f"Buy {coin} when it is {d}% or more below its 24-hour high, and sell after 48 hours or at +5%"))
+        out.append(("near_low", 1.5 + below_high / 10, f"{below_high:.1f}% below today’s high",
+                    f"{coin} rebounds when it’s {d}% below its daily high"))
     if size < 1:
-        out.append(("calm", 1 - size, f"barely moved today ({change:+.1f}%)",
-                    f"Buy {coin} when the last 24 hours have been unusually calm (hourly moves under 0.5%), and hold for 24 hours"))
-    # what-if ideas that fit any day: they ask "what would I do if it moved from here?"
-    out.append(("what_if_dip", 0.5, f"{change:+.1f}% today",
-                f"Buy {coin} if it drops 3% or more within 24 hours, and sell 24 hours later"))
-    out.append(("rsi", 0.4, f"{change:+.1f}% today",
-                f"Buy {coin} when the 14-hour RSI falls below 30, and sell when it gets back above 50"))
-    out.append(("trend", 0.3, f"{change:+.1f}% today",
-                f"Hold {coin} only while its price is above its 50-hour average"))
-    return [{"kind": k, "score": s, "fact": f"{coin} {_price(last)}, {fact}", "hunch": h, "coin": coin}
-            for k, s, fact, h in out]
+        out.append(("calm", 1 - size, f"barely moved today ({change:+.1f}%)", f"{coin} makes a big move after a really quiet day"))
+    # ideas that fit any day
+    out.append(("dip_any", 0.5, f"{change:+.1f}% today", f"{coin} bounces back after any 3% dip"))
+    out.append(("oversold", 0.4, f"{change:+.1f}% today", f"{coin} rebounds when it’s oversold"))
+    out.append(("trend", 0.3, f"{change:+.1f}% today", f"{coin} keeps rising while it stays above its recent average"))
+    return [{"kind": k, "score": sc, "fact": f"{coin} {_price(last)} · {fact}", "hunch": h, "coin": coin}
+            for k, sc, fact, h in out]
 
 
 def ideas_from_tickers(rows: list[dict]) -> list[dict]:
-    """Pure function: 24h ticker rows -> varied, plain-language, testable ideas (biggest moves first).
+    """Pure function: 24h ticker rows -> short, varied, everyday-language ideas.
 
-    Variety rules: at most 2 ideas per coin and at most 2 of the same kind, so a quiet day doesn't produce six
-    copies of the same suggestion."""
+    Order: a coin with a real move today (2%+) first, then familiar coins (Bitcoin, Ethereum, ...).
+    Variety: one idea per coin per round, at most 2 per coin and at most 2 of the same kind."""
     per_coin = []
     for r in rows:
         coin = COINS.get(r.get("symbol"))
         change, last, high, low = (_num(r.get(k)) for k in ("priceChangePercent", "lastPrice", "highPrice", "lowPrice"))
         if not coin or None in (change, last, high, low) or high <= 0 or last <= 0 or high < low:
             continue
-        per_coin.append((abs(change), _candidates(coin, change, last, high, low)))
+        size = abs(change)
+        rank = (size if size >= 2 else 0.0) * 2 + PRIORITY.get(coin, 0.0)
+        per_coin.append((rank, _candidates(coin, change, last, high, low)))
     per_coin.sort(key=lambda t: -t[0])
     out, seen = [], set()
     kinds: dict[str, int] = {}
     coins: dict[str, int] = {}
-    for _ in range(3):  # round-robin over coins: best remaining idea per coin each round
-        for _size, cands in per_coin:
+    for _ in range(2):  # round-robin over coins: best remaining idea per coin each round
+        for _rank, cands in per_coin:
             for c in sorted(cands, key=lambda c: -c["score"]):
                 if c["hunch"] in seen or kinds.get(c["kind"], 0) >= 2 or coins.get(c["coin"], 0) >= 2:
                     continue

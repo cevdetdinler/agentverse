@@ -71,7 +71,7 @@ def test_full_flow_and_live_vault_block(client):
     b = c.post("/api/spec/approve", json={"session_id": sid, "spec": edited, "parent_fingerprint": fp}).json()
     assert b["contaminated"] and b["trials"] == 2
     blocked = c.post("/api/vault/open", json={"session_id": sid, "fingerprint": b["fingerprint"]})
-    assert blocked.status_code == 409 and "already used its vault" in blocked.json()["error"]
+    assert blocked.status_code == 409 and "already took its final exam" in blocked.json()["error"]
     log = c.get("/api/ledger").json()
     assert any(e["type"] == "vault_blocked" for e in log["entries"])
     assert log["verify"]["ok"]

@@ -4,7 +4,9 @@
 const $ = (sel, el = document) => el.querySelector(sel);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const fmtP = (p) => (p === null || p === undefined ? "n/a" : Number(p).toFixed(4));
-const bps = (v) => (v === null || v === undefined ? "n/a" : `${v > 0 ? "+" : ""}${v}`);
+// numbers arrive in basis points (hundredths of a percent); the UI always shows percent
+const bps = (v) => (v === null || v === undefined ? "n/a" : `${v > 0 ? "+" : ""}${(v / 100).toFixed(2)}%`);
+const pctAbs = (v) => (v === null || v === undefined ? "n/a" : `${(v / 100).toFixed(2)}%`);
 
 const S = {
   sid: null,
@@ -81,11 +83,11 @@ function renderMarket() {
   document.querySelectorAll(".mkt").forEach((b) => b.classList.toggle("active", b.dataset.market === S.market));
   const synth = S.market === "synthetic";
   $("#lede-data").textContent = synth
-    ? "backtests them on a synthetic market with a known planted pattern, with real costs,"
-    : "backtests them on real prices with real costs,";
+    ? "tests them on a made-up market with a known hidden pattern, with real fees,"
+    : "tests them on real past prices with real fees,";
   const note = $("#market-note");
   note.classList.toggle("hidden", !synth);
-  if (synth) note.innerHTML = `<b>Synthetic market.</b> Prices come from our own generator with a planted “dip, then rebound” pattern, so a real edge exists to be found. Separate log, trial counts and vault. Not real market data.`;
+  if (synth) note.innerHTML = `<b>Synthetic market.</b> Made-up prices with a hidden “dip, then bounce back” pattern, so there is a real pattern to find. Separate log, try counts and final exam. Not real market data.`;
 }
 
 function wireMarket() {
@@ -230,7 +232,7 @@ function renderSuggest() {
   if (!l1.length && !l2.length || document.activeElement !== $("#hunch")) { box.classList.add("hidden"); return; }
   let html = "";
   if (l2.length) html += `<div class="group"><div class="label">Gemini · ${esc(S.config.models.router)} · precise wording</div>${l2.map((t) => `<div class="item" data-text="${esc(t)}">${esc(t)}</div>`).join("")}</div>`;
-  if (l1.length) html += `<div class="group"><div class="label">Instant · your hunches + library (no AI)</div>${l1.map((h) => `<div class="item" data-text="${esc(h.text)}">${esc(h.text)}<span class="hint">${h.src}</span></div>`).join("")}</div>`;
+  if (l1.length) html += `<div class="group"><div class="label">Instant · your ideas + examples (no AI)</div>${l1.map((h) => `<div class="item" data-text="${esc(h.text)}">${esc(h.text)}<span class="hint">${h.src}</span></div>`).join("")}</div>`;
   box.innerHTML = html;
   box.classList.remove("hidden");
   box.querySelectorAll(".item").forEach((it) => it.addEventListener("mousedown", (e) => { e.preventDefault(); accept(it.dataset.text); }));
@@ -252,7 +254,7 @@ async function submitHunch() {
   S.hunch = text; S.spec = null; S.approved = null; S.attacks = null; S.vault = null;
   resetBelow("#sec-questions");
   const sec = $("#sec-questions"); show("#sec-questions");
-  sec.innerHTML = loader(`${S.config.models.reason} is reading your hunch…`);
+  sec.innerHTML = loader(`${S.config.models.reason} is reading your idea…`);
   try {
     const out = await api("/api/hunch", { body: { session_id: S.sid, hunch: text } });
     handleTranslate(out);
@@ -272,7 +274,7 @@ function renderQuestions(out) {
   const answers = {};
   sec.innerHTML = `
     <div class="section-head"><span class="step-no">02</span><h2>A few questions first</h2>
-      <span class="muted small">Your hunch is ambiguous in ways that change the result. Gemini asks instead of guessing.</span></div>
+      <span class="muted small">Your idea could mean a few different things, and each gives a different result. Gemini asks instead of guessing.</span></div>
     <div class="q-grid">${out.questions.map((q, i) => `
       <div class="q-card" data-q="${i}">
         <div class="q">${esc(q.text)}</div>
@@ -326,7 +328,7 @@ function renderRuleCard(out) {
   (sp.exit.any || []).forEach((c, i) => exits.push(condHTML(c, `exit.any.${i}`)));
   const trialsNow = S.approved?.idea_id ? S.approved.trials : 0;
   sec.innerHTML = `
-    <div class="section-head"><span class="step-no">03</span><h2>Rule card</h2>
+    <div class="section-head"><span class="step-no">03</span><h2>Your rules</h2>
       <span class="muted small">Exactly what will be tested. Edit any number, then approve. Only you can approve.</span></div>
     <div class="rule-card">
       <div class="rule-head">
@@ -338,13 +340,14 @@ function renderRuleCard(out) {
         <div class="line"><span class="kw">ENTER</span> when ${sp.entry.all.map((c, i) => condHTML(c, `entry.all.${i}`)).join(" <span class='kw'>AND</span> ")}</div>
         <div class="line"><span class="kw">EXIT</span> when ${exits.join(" <span class='kw'>OR</span> ")}</div>
         ${sp.cooldown_bars ? `<div class="line"><span class="kw">WAIT</span> <input class="edit" data-path="cooldown_bars" data-int="1" value="${sp.cooldown_bars}"> bars after an exit</div>` : ""}
-        <div class="line muted small" style="margin-top:12px">Long-only · all-in/all-out · decide on bar close, fill at the next bar · thresholds are fractions (−0.05 = −5%)</div>
+        <div class="line muted small" style="margin-top:12px">Exact rules (edit any number) · 1 bar = 1 hour · −0.05 means −5%</div>
       </div>
+      <p class="plain-rules">${esc(plainRules(sp))}</p>
       <h3 style="margin-bottom:6px">Assumptions Gemini made</h3>
       <ul class="assumptions">${(sp.assumptions || []).map((a) => `<li>${esc(a)}</li>`).join("") || "<li class='muted'>none listed</li>"}</ul>
       <div class="row" style="margin-top:22px">
         <button class="btn primary" id="approve-btn">Approve rules</button>
-        <span class="small muted" id="approve-note">Approval counts as one trial for this idea.</span>
+        <span class="small muted" id="approve-note">Approving counts as one try for this idea.</span>
       </div>
       <div id="rule-error"></div>
     </div>`;
@@ -353,12 +356,51 @@ function renderRuleCard(out) {
   $("#approve-btn").onclick = approve;
 }
 
+// ---- the rules in plain words (display only; the exact rules above are what gets tested)
+const OP_WORDS = { "<": "is below", "<=": "is at most", ">": "is above", ">=": "is at least",
+  crosses_above: "rises above", crosses_below: "drops below" };
+const pctWord = (x) => `${(Math.abs(x) * 100).toFixed(2).replace(/\.?0+$/, "")}%`;
+function plainCond(c) {
+  const L = c.lookback, W = c.window, v = Number(c.value), op = c.op;
+  const down = op === "<" || op === "<=" || op === "crosses_below";
+  if (c.feature === "return" && v < 0 && down) return `the price has fallen ${pctWord(v)} or more over the last ${L} hours`;
+  if (c.feature === "return" && v > 0 && !down) return `the price has risen ${pctWord(v)} or more over the last ${L} hours`;
+  if (c.feature === "drawdown_from_high" && down) return `the price is ${pctWord(v)} or more below its highest point of the last ${L} hours`;
+  if (c.feature === "rise_from_low" && !down) return `the price is ${pctWord(v)} or more above its lowest point of the last ${L} hours`;
+  if (c.feature === "down_streak") return `the price has fallen ${v} times in a row`;
+  const signed = `${v > 0 ? "+" : v < 0 ? "−" : ""}${pctWord(v)}`;
+  const names = {
+    return: [`the price change over the last ${L} hours`, signed],
+    price_vs_sma: [`the price compared with its ${W}-hour average`, signed],
+    sma_ratio: [`the ${c.fast}-hour average compared with the ${c.slow}-hour average`, signed],
+    rsi: [`the ${W}-hour RSI (a 0–100 gauge of recent rises vs falls)`, String(v)],
+    drawdown_from_high: [`the price compared with its ${L}-hour high`, signed],
+    rise_from_low: [`the price compared with its ${L}-hour low`, signed],
+    breakout: [`the price compared with the previous ${L}-hour high`, signed],
+    volatility: [`how jumpy the price has been over ${L} hours`, pctWord(v)],
+  };
+  const [what, val] = names[c.feature] || [c.feature, String(v)];
+  return `${what} ${OP_WORDS[op] || op} ${val}`;
+}
+function plainRules(sp) {
+  const buy = sp.entry.all.map(plainCond).join(", and ");
+  const sells = [];
+  if (sp.exit.hold_bars != null) sells.push(`after ${sp.exit.hold_bars} hours`);
+  if (sp.exit.take_profit != null) sells.push(`once it is up ${pctWord(sp.exit.take_profit)}`);
+  if (sp.exit.stop_loss != null) sells.push(`once it is down ${pctWord(sp.exit.stop_loss)}`);
+  (sp.exit.any || []).forEach((c) => sells.push(`when ${plainCond(c)}`));
+  let text = `In plain words: buy when ${buy}. Sell ${sells.join(", or ")}.`;
+  if (sp.cooldown_bars) text += ` After selling, wait ${sp.cooldown_bars} hours before buying again.`;
+  return text;
+}
+
 function updateTrialBadge(trials, edited) {
   const b = $("#trial-badge");
   if (!b) return;
   const next = edited || !S.approved ? trials + 1 : trials;
   b.className = next > 1 ? "badge warn" : "badge";
-  b.innerHTML = `trial <span class="mono">${next}</span> · bar <span class="mono">p &lt; ${(0.05 / Math.max(1, next)).toPrecision(2)}</span>`;
+  b.innerHTML = `try <span class="mono">${next}</span> · luck bar <span class="mono">p &lt; ${(0.05 / Math.max(1, next)).toPrecision(2)}</span>`;
+  b.title = "Every extra try at the same idea makes a lucky result more likely, so the bar gets stricter.";
 }
 
 function setPath(obj, path, val) {
@@ -379,7 +421,7 @@ async function onEdit(e) {
     $("#fp-badge").textContent = `fp ${out.fingerprint.slice(0, 12)} (edited)`;
     $("#rule-error").innerHTML = "";
     const edited = !S.approved || out.fingerprint !== S.approved.fingerprint;
-    $("#approve-btn").textContent = S.approved && edited ? "Approve edited rules (new trial)" : "Approve rules";
+    $("#approve-btn").textContent = S.approved && edited ? "Approve edited rules (new try)" : "Approve rules";
     $("#approve-btn").disabled = !edited && !!S.approved;
     updateTrialBadge(S.approved ? S.approved.trials : 0, edited);
   } catch (err) { $("#rule-error").innerHTML = errorBox(err); }
@@ -392,7 +434,7 @@ async function approve() {
     const out = await api("/api/spec/approve", { body: { session_id: S.sid, spec: S.spec, parent_fingerprint: parent } });
     S.approved = out; S.spec = out.spec; S.attacks = null;
     $("#fp-badge").textContent = `fp ${out.fingerprint.slice(0, 12)} ✓ approved`;
-    $("#approve-note").textContent = `Approved by you · idea ${out.idea_id} · ${out.trials} trial${out.trials === 1 ? "" : "s"} so far` + (out.contaminated ? " · ⚠ changed after this idea's vault was used" : "");
+    $("#approve-note").textContent = `Approved by you · ${out.trials} tr${out.trials === 1 ? "y" : "ies"} at this idea so far` + (out.contaminated ? " · ⚠ changed after this idea's final exam" : "");
     btn.textContent = "Approved";
     updateTrialBadge(out.trials, false);
     document.querySelectorAll("#sec-rule input.edit").forEach((i) => i.classList.remove("changed"));
@@ -406,8 +448,8 @@ async function approve() {
 async function runAttacks() {
   resetBelow("#sec-attacks");
   const sec = $("#sec-attacks"); show("#sec-attacks");
-  sec.innerHTML = `<div class="section-head"><span class="step-no">04</span><h2>Attacks</h2></div>` +
-    loader(`Baseline on 300 practice paths → ${S.config.models.reason} pre-registers alternative explanations → shuffled markets, wobble, cost stress, outliers, too-many-tries…`);
+  sec.innerHTML = `<div class="section-head"><span class="step-no">04</span><h2>Trying to break it</h2></div>` +
+    loader(`Testing on ${S.config.practice_paths || 300} past price histories → ${S.config.models.reason} picks extra checks for this idea → luck check, fragility, higher fees, lucky streaks, too many tries…`);
   try {
     S.attacks = await api("/api/attack", { body: { session_id: S.sid, fingerprint: S.approved.fingerprint } });
     renderAttacks(); renderVault(); explain();
@@ -418,22 +460,29 @@ async function runAttacks() {
 function keyNumber(r) {
   const n = r.numbers;
   switch (r.id) {
-    case "A1": return { v: bps(n.median_excess_bps), u: "bps median excess", sub: `95% CI [${n.median_excess_ci95_bps[0]}, ${n.median_excess_ci95_bps[1]}] · sign p ${fmtP(n.sign_p)} · ${n.wins}W/${n.losses}L` };
-    case "A2": return { v: fmtP(n.p_perm), u: "p_perm", sub: `K=${n.K} shuffled markets · real ${n.observed_mean_excess_bps} vs shuffled ${n.perm_mean_excess_median_bps} bps` };
-    case "A3": return { v: `${n.share_positive_pct}%`, u: "neighbours positive", sub: `${n.neighbours} neighbours · your rule ranks ${n.user_spec_rank}/${n.rank_out_of}` };
-    case "A4": return { v: bps(n.median_excess_x2_bps), u: "bps at costs ×2", sub: `×1 ${bps(n.median_excess_x1_bps)} · ×3 ${bps(n.median_excess_x3_bps)} bps` };
-    case "A5": return { v: bps(n.median_after_bps), u: "bps without top 5%", sub: `median ${bps(n.median_before_bps)} → ${bps(n.median_after_bps)} · mean ${bps(n.mean_before_bps)} → ${bps(n.mean_after_bps)}` };
-    case "A6": return { v: fmtP(n.p_adj), u: "adjusted p", sub: `${n.trials} trial${n.trials === 1 ? "" : "s"} × p_perm ${fmtP(n.p_perm)} · bar p < ${n.bar}` };
+    case "A1": return { v: bps(n.median_excess_bps), u: "typical result vs holding", sub: `likely range ${bps(n.median_excess_ci95_bps[0])} to ${bps(n.median_excess_ci95_bps[1])} · beat holding ${n.wins} of ${n.paths} · luck score ${fmtP(n.sign_p)}` };
+    case "A2": return { v: fmtP(n.p_perm), u: "luck score (needs < 0.05)", sub: `${n.perm_at_or_above_observed} of ${n.K} scrambled markets did as well · yours ${bps(n.observed_mean_excess_bps)} vs scrambled ${bps(n.perm_mean_excess_median_bps)}` };
+    case "A3": return { v: `${n.share_positive_pct}%`, u: "of variations still beat holding", sub: `${n.neighbours} slightly different versions · yours ranks ${n.user_spec_rank} of ${n.rank_out_of}` };
+    case "A4": return { v: bps(n.median_excess_x2_bps), u: "typical result at 2× fees", sub: `normal fees ${bps(n.median_excess_x1_bps)} · 3× fees ${bps(n.median_excess_x3_bps)}` };
+    case "A5": return { v: bps(n.median_after_bps), u: "without the luckiest 5%", sub: `typical ${bps(n.median_before_bps)} → ${bps(n.median_after_bps)} · average ${bps(n.mean_before_bps)} → ${bps(n.mean_after_bps)}` };
+    case "A6": return { v: fmtP(n.p_adj), u: "luck score after your tries", sub: `${n.trials} tr${n.trials === 1 ? "y" : "ies"} at this idea · bar p < ${n.bar}` };
     default: {
-      if (n.table && n.table[0] && "bucket" in n.table[0]) return { v: `${n.positive_buckets}/${n.buckets}`, u: "groups positive", sub: n.table.map((t) => `${t.bucket} ${bps(t.median_excess_bps)}`).join(" · ") };
-      if (n.fold_medians_bps) return { v: `${n.positive_folds}/${n.k}`, u: "folds positive", sub: n.fold_medians_bps.map(bps).join(" · ") + " bps" };
-      if ("exposure_pct" in n) return { v: `${n.exposure_pct}%`, u: "time in market", sub: `corr with buy-and-hold ${n.return_correlation_with_bh}` };
-      if (n.table && n.table[0] && "hold_bars" in n.table[0]) return { v: `${n.share_positive_pct}%`, u: "holding periods positive", sub: n.table.map((t) => `${t.hold_bars}b ${bps(t.median_excess_bps)}`).join(" · ") };
-      if ("multiplier" in n) return { v: bps(n.median_excess_bps), u: `bps at costs ×${n.multiplier}`, sub: `${n.wins}W/${n.losses}L · sign p ${fmtP(n.sign_p)}` };
-      if ("median_after_bps" in n) return { v: bps(n.median_after_bps), u: `bps without top ${n.pct}%`, sub: `dropped ${n.dropped_paths} paths` };
+      if (n.table && n.table[0] && "bucket" in n.table[0]) return { v: `${n.positive_buckets}/${n.buckets}`, u: "kinds of market where it beat holding", sub: n.table.map((t) => `${t.bucket} ${bps(t.median_excess_bps)}`).join(" · ") };
+      if (n.fold_medians_bps) return { v: `${n.positive_folds}/${n.k}`, u: "groups where it beat holding", sub: n.fold_medians_bps.map(bps).join(" · ") };
+      if ("exposure_pct" in n) return { v: `${n.exposure_pct}%`, u: "of the time invested", sub: `moves with plain holding: ${n.return_correlation_with_bh} (1 = identical)` };
+      if (n.table && n.table[0] && "hold_bars" in n.table[0]) return { v: `${n.share_positive_pct}%`, u: "of holding times beat holding", sub: n.table.map((t) => `${t.hold_bars}h ${bps(t.median_excess_bps)}`).join(" · ") };
+      if ("multiplier" in n) return { v: bps(n.median_excess_bps), u: `typical result at ${n.multiplier}× fees`, sub: `beat holding ${n.wins}, lost ${n.losses} · luck score ${fmtP(n.sign_p)}` };
+      if ("median_after_bps" in n) return { v: bps(n.median_after_bps), u: `without the luckiest ${n.pct}%`, sub: `left out ${n.dropped_paths} price histories` };
       return { v: "", u: "", sub: "" };
     }
   }
+}
+
+function niceParam(label) {
+  return String(label).replace(/^entry\[\d+\]\./, "buy rule ").replace(/^exit\[\d+\]\./, "sell rule ")
+    .replace("exit.hold_bars", "hours held").replace("exit.take_profit", "profit target").replace("exit.stop_loss", "loss limit")
+    .replace("cooldown_bars", "wait after selling").replace(".lookback", " hours back").replace(".window", " window")
+    .replace(".value", " threshold").replace(".fast", " short average").replace(".slow", " long average");
 }
 
 function chartSVG(c) {
@@ -466,27 +515,27 @@ function chartSVG(c) {
       html += `<div class="hdr" style="text-align:right">${lab(j.steps[i])}</div>`;
       row.forEach((cell) => {
         const m = cell ? cell.median_excess_bps : null;
-        html += `<div class="cell" style="background:${color(m)};${cell?.is_user_spec ? "outline:2px solid #111" : ""}">${m == null ? "–" : m}</div>`;
+        html += `<div class="cell" style="background:${color(m)};${cell?.is_user_spec ? "outline:2px solid #111" : ""}">${m == null ? "–" : bps(m)}</div>`;
       });
     });
-    return html + `</div><div class="sub">rows: ${esc(j.params[0])} · cols: ${esc(j.params[1])} · median bps · outlined = your rule</div>`;
+    return html + `</div><div class="sub">rows: ${esc(niceParam(j.params[0]))} · columns: ${esc(niceParam(j.params[1]))} · typical result · outlined = yours</div>`;
   }
   return "";
 }
 
 function attackCard(r) {
   const k = keyNumber(r);
-  const prereg = r.kind === "diagnostic" ? `<div class="prereg"><b>Gemini's alternative explanation (logged before the test ran):</b> ${esc(r.hypothesis)}
-      ${r.inputs?.supports_if ? `<div class="small muted" style="margin-top:6px">Supports it if: ${esc(r.inputs.supports_if)}<br>Refutes it if: ${esc(r.inputs.refutes_if)}</div>` : ""}</div>` : "";
+  const prereg = r.kind === "diagnostic" ? `<div class="prereg"><b>Gemini’s worry about this idea (written down before the check ran):</b> ${esc(r.hypothesis)}
+      ${r.inputs?.supports_if ? `<div class="small muted" style="margin-top:6px">Worry confirmed if: ${esc(r.inputs.supports_if)}<br>Worry ruled out if: ${esc(r.inputs.refutes_if)}</div>` : ""}</div>` : "";
   return `<div class="attack" id="card-${r.id}">
     <div class="top"><span class="aid">${r.id}</span><span class="name">${esc(r.name)}</span>
-      ${r.kind === "diagnostic" ? `<span class="badge violet">agent-proposed</span>` : ""}
+      ${r.kind === "diagnostic" ? `<span class="badge violet">Gemini’s idea</span>` : ""}
       <span class="badge ${r.passed ? "pass" : "fail"}">${r.passed ? "pass" : "fail"}</span></div>
     <div><span class="key">${esc(k.v)}<span class="unit">${esc(k.u)}</span></span><div class="sub">${esc(k.sub)}</div></div>
     ${chartSVG(r.chart)}
     ${prereg}
     <div class="summary">${esc(r.summary)}</div>
-    <div class="foot"><span class="small muted">${esc(r.kind === "diagnostic" ? "diagnostic: " : "gate: ")}${esc(r.threshold)}</span>
+    <div class="foot"><span class="small muted">${esc(r.kind === "diagnostic" ? "Extra check · " : "")}${esc(r.threshold)}</span>
       <button class="btn ghost small nowrap" data-trace="${r.id}">trace&nbsp;→</button></div>
   </div>`;
 }
@@ -496,11 +545,11 @@ function renderAttacks() {
   const sec = $("#sec-attacks");
   const tone = g.status === "ELIGIBLE" ? "ok" : g.status === "INCONCLUSIVE" ? "warn" : "bad";
   sec.innerHTML = `
-    <div class="section-head"><span class="step-no">04</span><h2>Attacks</h2>
-      <span class="muted small">Fixed battery A1–A6 decides the practice gate. D-cards are Gemini's idea-specific challenges, pre-registered before they ran.</span></div>
-    <div class="gate"><span class="badge ${tone}">${esc(g.status === "ELIGIBLE" ? "practice: passed" : "practice: " + g.status.toLowerCase())}</span>
+    <div class="section-head"><span class="step-no">04</span><h2>Trying to break it</h2>
+      <span class="muted small">Six standard checks (A1–A6) decide pass or fail. Purple cards are extra checks Gemini chose for this idea, written down before they ran.</span></div>
+    <div class="gate"><span class="badge ${tone}">${esc(g.status === "ELIGIBLE" ? "checks: passed" : "checks: " + g.status.toLowerCase())}</span>
       <div><b style="color:var(--ink)">${esc(g.headline)}</b>${g.failing.length ? `<ul>${g.failing.map((f) => `<li>${esc(f)}</li>`).join("")}</ul>` : ""}
-      ${a.plan_error ? `<div class="small muted">Gemini planning unavailable (${esc(a.plan_error)}); the fixed battery still ran.</div>` : ""}</div></div>
+      ${a.plan_error ? `<div class="small muted">Gemini couldn’t suggest extra checks this time (${esc(a.plan_error)}); the six standard checks still ran.</div>` : ""}</div></div>
     <div class="attack-grid">${[...a.results, ...a.diagnostics].map(attackCard).join("")}</div>`;
   sec.querySelectorAll("[data-trace]").forEach((b) => (b.onclick = () => openTrace(b.dataset.trace)));
 }
@@ -516,13 +565,13 @@ function renderVault() {
       <div class="row" style="gap:16px;align-items:flex-start">
         <div class="lock">${opened ? "🔓" : "🔒"}</div>
         <div style="flex:1">
-          <h2>The vault</h2>
-          <div class="reason">150 price paths this idea has never touched. One shot per idea: the pass mark is written to the log before it opens, and only a human click opens it.</div>
+          <h2>The final exam</h2>
+          <div class="reason">150 past price histories this idea has never seen. One attempt per idea: the pass mark is written down before it opens, and only you can open it.</div>
         </div>
       </div>
       <div id="vault-body" style="margin-top:20px">
         ${opened ? vaultTable(opened) : `
-        <div class="row"><button class="btn vault-btn" id="vault-btn" ${canTry ? "" : "disabled"}>Open vault (one shot)</button>
+        <div class="row"><button class="btn vault-btn" id="vault-btn" ${canTry ? "" : "disabled"}>Take the final exam (one attempt)</button>
         <span class="reason">${esc(v.reason)}</span></div>`}
       </div>
     </div>`;
@@ -535,15 +584,15 @@ function vaultTable(r) {
   const row = (label, a, b) => `<tr><td>${label}</td><td>${a}</td><td>${b}</td></tr>`;
   return `
     <table>
-      <tr><th></th><th>Practice (300 paths)</th><th>Vault (${v.paths} paths)</th></tr>
-      ${row("Median excess vs buy-and-hold", `${bps(p.median_excess_bps)} bps`, `${bps(v.median_excess_bps)} bps`)}
-      ${row("95% CI of median", p.median_excess_ci95_bps ? `[${p.median_excess_ci95_bps.join(", ")}]` : "–", `[${v.median_excess_ci95_bps.join(", ")}]`)}
-      ${row("Wins / losses vs B&H", `${p.wins}/${p.losses}`, `${v.wins}/${v.losses}`)}
-      ${row("Sign-test p", fmtP(p.sign_p), fmtP(v.sign_p))}
-      ${row("Mean max drawdown", `${p.mean_max_drawdown_bps} bps`, `${v.mean_max_drawdown_bps} bps`)}
+      <tr><th></th><th>Practice (${p.paths || 300} histories)</th><th>Final exam (${v.paths} histories)</th></tr>
+      ${row("Typical result vs just holding", bps(p.median_excess_bps), bps(v.median_excess_bps))}
+      ${row("Likely range", p.median_excess_ci95_bps ? `${bps(p.median_excess_ci95_bps[0])} to ${bps(p.median_excess_ci95_bps[1])}` : "–", `${bps(v.median_excess_ci95_bps[0])} to ${bps(v.median_excess_ci95_bps[1])}`)}
+      ${row("Beat holding / lost to holding", `${p.wins} / ${p.losses}`, `${v.wins} / ${v.losses}`)}
+      ${row("Luck score (needs below 0.05)", fmtP(p.sign_p), fmtP(v.sign_p))}
+      ${row("Average worst drop", pctAbs(p.mean_max_drawdown_bps), pctAbs(v.mean_max_drawdown_bps))}
       ${row("Trades", p.total_trades, v.total_trades)}
     </table>
-    <div class="precommit">${r.edge_retained_pct != null ? `Edge retained on unseen data: ${r.edge_retained_pct}% of the practice median. ` : ""}${r.replayed ? "Stored result replayed (never re-run). " : ""}Pass mark pre-committed in the log: median > 0 and sign-test p < 0.05.</div>`;
+    <div class="precommit">${r.edge_retained_pct != null ? `On prices it had never seen, it kept ${r.edge_retained_pct}% of its practice result. ` : ""}${r.replayed ? "Showing the saved result (an exam is never re-run). " : ""}Pass mark, written down before opening: typical result above 0% and luck score below 0.05.</div>`;
 }
 
 async function openVault() {
@@ -555,7 +604,7 @@ async function openVault() {
     explain();
   } catch (e) {
     if (e.status === 409) {
-      $("#vault-body").insertAdjacentHTML("beforeend", `<div class="block"><b>Blocked.</b> ${esc(e.message)}<div class="small" style="margin-top:6px">Recorded in the audit log as <span class="mono">${e.data.code === "vault_blocked" ? "vault_blocked" : esc(e.data.code)}</span>. Open the Log tab to see it.</div></div>`);
+      $("#vault-body").insertAdjacentHTML("beforeend", `<div class="block"><b>Blocked.</b> ${esc(e.message)}<div class="small" style="margin-top:6px">Recorded in the tamper-proof log as <span class="mono">${e.data.code === "vault_blocked" ? "vault_blocked" : esc(e.data.code)}</span>. Open the Log tab to see it.</div></div>`);
     } else $("#vault-body").insertAdjacentHTML("beforeend", errorBox(e));
   }
   refreshChain(); refreshHistory();
@@ -563,7 +612,7 @@ async function openVault() {
 
 function renderVaultAfterEdit() {
   // the edited card belongs to an idea that already used its vault: show the vault so the user can try (and be refused)
-  S.attacks = { ...(S.attacks || {}), vault: { state: "contaminated", can_open: false, reason: "This version was changed after the idea's vault was opened." } };
+  S.attacks = { ...(S.attacks || {}), vault: { state: "contaminated", can_open: false, reason: "These rules were changed after this idea took its final exam." } };
   const prev = S.vault; S.vault = null;
   renderVault();
   S.vault = prev;
@@ -573,7 +622,7 @@ function renderVaultAfterEdit() {
 // ------------------------------------------------------------------ step 5: verdict + explanation
 async function explain() {
   const sec = $("#sec-verdict"); show("#sec-verdict");
-  sec.innerHTML = `<div class="section-head"><span class="step-no">05</span><h2>Verdict</h2></div>` + loader(`${S.config.models.reason} is explaining the verdict (numbers checked by the number guard)…`);
+  sec.innerHTML = `<div class="section-head"><span class="step-no">05</span><h2>Verdict</h2></div>` + loader(`${S.config.models.reason} is explaining the verdict (every number it uses gets checked)…`);
   try {
     const out = await api("/api/explain", { body: { session_id: S.sid, fingerprint: S.approved.fingerprint } });
     renderVerdict(out);
@@ -590,13 +639,13 @@ function renderVerdict(out) {
   const isFinal = v.stage === "final";
   sec.innerHTML = `
     <div class="section-head"><span class="step-no">05</span><h2>Verdict</h2>
-      <span class="muted small">${isFinal ? "Final: decided by pre-registered rules on the vault." : "Practice stage: decided by the practice gate."} The label comes from code; Gemini only explains it.</span></div>
+      <span class="muted small">${isFinal ? "Final: decided by the final exam, using a pass mark written down in advance." : "Decided by the standard checks."} The verdict comes from code; Gemini only explains it.</span></div>
     <div class="card verdict">
       <div><div class="verdict-badge ${label}">${label}</div>
-        <div class="small muted" style="margin-top:10px">${isFinal ? "after the vault" : "before the vault"}</div></div>
+        <div class="small muted" style="margin-top:10px">${isFinal ? "after the final exam" : "before the final exam"}</div></div>
       <div>
         <div class="explain">${text}</div>
-        ${out.removed_count ? `<div class="guard-note">⚑ ${out.removed_count} claim${out.removed_count > 1 ? "s" : ""} removed by the number guard (a number not produced by the tools).</div>` : ""}
+        ${out.removed_count ? `<div class="guard-note">⚑ ${out.removed_count} sentence${out.removed_count > 1 ? "s" : ""} removed: Gemini used a number our maths didn’t produce.</div>` : ""}
         <ul class="reasons">${v.reasons.map((r) => `<li>${esc(r)}</li>`).join("")}</ul>
         <div class="row small muted" style="margin-top:14px">
           <span class="mono">${esc(out.model)} · ${out.interaction_ids.map((i) => esc(i.slice(0, 14)) + "…").join(", ")}</span>
@@ -623,11 +672,11 @@ async function suggestRewrite() {
       <div class="small muted">Gemini suggests:</div><div style="color:var(--ink);margin:4px 0 8px">${esc(out.rationale)}</div>
       <div class="mono small">${out.rules_text.map(esc).join("<br>")}</div>
       <div class="row" style="margin-top:12px"><button class="btn small" id="use-rewrite">Load into the rule card</button>
-      <span class="small muted">You still approve it. It counts as trial ${S.approved.trials + 1}.</span></div></div>`;
+      <span class="small muted">You still approve it. It counts as try ${S.approved.trials + 1}.</span></div></div>`;
     $("#use-rewrite").onclick = () => {
       S.spec = out.spec;
       renderRuleCard({ fingerprint: out.fingerprint });
-      $("#approve-btn").textContent = "Approve suggested rules (new trial)";
+      $("#approve-btn").textContent = "Approve suggested rules (new try)";
       updateTrialBadge(S.approved.trials, true);
       $("#sec-rule").scrollIntoView({ behavior: "smooth" });
     };

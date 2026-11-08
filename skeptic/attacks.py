@@ -80,6 +80,11 @@ def evaluate(spec: RuleCard, paths, fee_mult: int = 1, bps_mult: int = 1, positi
     return Evaluation(rows, all_pos)
 
 
+def _pc(bps) -> str:
+    """Display a basis-point figure as a signed percentage (display only; the number stays in bps)."""
+    return f"{bps / 100:+.2f}%"
+
+
 def _median(values) -> int:
     return median_int(values) if len(values) else 0
 
@@ -111,21 +116,22 @@ def a1_baseline(spec: RuleCard, paths, ev: Evaluation, seed: int = config.SEEDS[
     }
     p_txt = "n/a" if numbers["sign_p"] is None else f"{numbers['sign_p']:.4f}"
     summary = (
-        f"Across {agg['paths']} practice paths: {agg['wins']} wins, {agg['losses']} losses, {agg['ties']} ties vs "
-        f"buy-and-hold. Median excess {agg['median_excess_bps']} bps (95% CI {lo} to {hi}); sign-test p = {p_txt}; "
-        f"{agg['total_trades']} trades; in the market {exposure_pct}% of bars."
+        f"Over {agg['paths']} real price histories, the rule beat just buying and holding in {agg['wins']} and lost in "
+        f"{agg['losses']}. Typical result: {_pc(agg['median_excess_bps'])} vs holding (likely range {_pc(lo)} to {_pc(hi)}). "
+        f"Luck score p = {p_txt} (below 0.05 means it is unlikely to be a coin flip). {agg['total_trades']} trades; "
+        f"money invested {exposure_pct}% of the time."
     )
     return AttackResult(
         id="A1",
-        name="Baseline backtest",
-        hypothesis="The rule beats buy-and-hold after real fees and slippage more often than chance.",
+        name="Did it beat just holding?",
+        hypothesis="It beats simply buying and holding, after real fees, more often than a coin flip would.",
         numbers=numbers,
         passed=passed,
-        threshold=f"median excess > 0 and sign-test p < {ALPHA}",
+        threshold=f"Pass: typical result above 0% and luck score below {ALPHA}",
         inputs={"paths": len(paths), "bootstrap_resamples": config.BOOTSTRAP_RESAMPLES, "seed": seed,
                 "fingerprint": spec.fingerprint},
         summary=summary,
-        chart={**_hist(ev.excess), "label": "excess vs buy-and-hold per path (bps)", "marker": agg["median_excess_bps"]},
+        chart={**_hist(ev.excess), "label": "result vs holding, one bar per price history", "marker": agg["median_excess_bps"]},
     )
 
 
@@ -172,22 +178,22 @@ def a2_permutation(spec: RuleCard, paths, ev: Evaluation, k: int = config.PERM_K
         "observed_percentile": round(100.0 * float(np.mean(perm_means < observed)), 1),
     }
     summary = (
-        f"We rebuilt every practice path {k} times from its own price moves in random order (same start, end and "
-        f"volatility, but no timing information) and reran the exact rule. The shuffled markets did at least as well "
-        f"as the real ones in {exceed} of {k} cases (p_perm = {p_perm:.4f}). Real mean excess {observed:.1f} bps vs a "
-        f"typical shuffled {numbers['perm_mean_excess_median_bps']} bps."
+        f"We scrambled the order of each price history's moves {k} times (same ups and downs, no pattern left to find) "
+        f"and reran your rule. The scrambled markets did at least as well in {exceed} of {k} cases "
+        f"(luck score p = {p_perm:.4f}). Your average: {_pc(observed)} vs holding; scrambled: "
+        f"{_pc(numbers['perm_mean_excess_median_bps'])}."
     )
     return AttackResult(
         id="A2",
-        name="Shuffled-returns test",
-        hypothesis="The rule profits from the ORDER of price moves (real timing information), not from luck.",
+        name="Luck check",
+        hypothesis="It wins because of real timing, not luck.",
         numbers=numbers,
         passed=passed,
-        threshold=f"p_perm < {ALPHA} (before the too-many-tries adjustment in A6)",
+        threshold=f"Pass: luck score below {ALPHA}",
         inputs={"K": k, "seed": seed, "paths": len(paths), "fingerprint": spec.fingerprint,
                 "null": "one-bar log returns shuffled within each path"},
         summary=summary,
-        chart={**_hist(perm_means.tolist()), "label": "mean excess on shuffled-return markets (bps)", "marker": round(observed, 1)},
+        chart={**_hist(perm_means.tolist()), "label": "scrambled markets; the dark line is your rule", "marker": round(observed, 1)},
     )
 
 
@@ -312,17 +318,17 @@ def a3_wobble(spec: RuleCard, paths, ev: Evaluation) -> AttackResult:
         "worst_neighbour_median_bps": min(meds) if meds else None,
     }
     summary = (
-        f"Nudging each parameter by up to ±30% gave {len(meds)} neighbouring rules; "
-        f"{numbers['share_positive_pct']}% of them still had a positive median excess. Your rule ranks "
-        f"{rank} of {len(meds) + 1}." + (" Knife-edge: the result depends on the exact settings." if not passed else "")
+        f"We nudged each number in your rule up and down by up to 30% ({len(meds)} variations). "
+        f"{numbers['share_positive_pct']}% of them still beat holding. Yours ranks {rank} of {len(meds) + 1}."
+        + (" Fragile: it only works at these exact settings." if not passed else "")
     )
     return AttackResult(
         id="A3",
-        name="Wobble (parameter sensitivity)",
-        hypothesis="The edge is a broad plateau, not a lucky spike at one exact setting.",
+        name="Fragility check",
+        hypothesis="It still works if the numbers are slightly different.",
         numbers=numbers,
         passed=passed,
-        threshold=f">= {config.GATE['wobble_min_share']:.0%} of neighbours with median excess > 0 (diagnostic only: Skeptic never swaps in a better neighbour)",
+        threshold=f"Pass: at least {config.GATE['wobble_min_share']:.0%} of variations still beat holding (Skeptic never swaps in a better one)",
         inputs={"steps": list(config.WOBBLE_STEPS), "joint_steps": list(config.WOBBLE_JOINT_STEPS),
                 "params": [p[0] for p in params], "fingerprint": spec.fingerprint},
         summary=summary,
@@ -349,21 +355,20 @@ def a4_cost_stress(spec: RuleCard, paths, ev: Evaluation) -> AttackResult:
     numbers = {f"median_excess_x{r['multiplier']}_bps": r["median_excess_bps"] for r in rows}
     numbers["table"] = rows
     summary = (
-        "If the rule paid double fees and slippage (buy-and-hold at real costs) its median excess would be "
-        f"{at_gate['median_excess_bps']} bps; tripled it is {rows[-1]['median_excess_bps']} bps "
-        f"(at real costs: {rows[0]['median_excess_bps']} bps)."
+        f"Paying double fees, the typical result would be {_pc(at_gate['median_excess_bps'])} vs holding; triple fees, "
+        f"{_pc(rows[-1]['median_excess_bps'])} (at normal fees: {_pc(rows[0]['median_excess_bps'])})."
     )
     return AttackResult(
         id="A4",
-        name="Cost stress",
-        hypothesis="The edge survives if trading is more expensive than the data assumes.",
+        name="Higher fees check",
+        hypothesis="It still works if trading costs more.",
         numbers=numbers,
         passed=passed,
-        threshold=f"median excess > 0 when the rule pays fees x{gate_m} and slippage x{gate_m} (buy-and-hold keeps real costs)",
+        threshold=f"Pass: still above 0% when paying {gate_m}x fees (holding keeps normal fees)",
         inputs={"multipliers": [1, *config.COST_MULTIPLIERS], "fingerprint": spec.fingerprint},
         summary=summary,
         chart={"type": "bars", "labels": [f"x{r['multiplier']}" for r in rows], "values": [r["median_excess_bps"] for r in rows],
-               "label": "median excess (bps) by cost multiplier"},
+               "label": "typical result at normal, 2x and 3x fees"},
     )
 
 
@@ -386,20 +391,20 @@ def a5_outliers(spec: RuleCard, paths, ev: Evaluation, pct: float = config.GATE[
                "median_after_bps": after_med, "mean_after_bps": after_mean,
                "mean_sign_flipped": (before_mean > 0) != (after_mean > 0)}
     summary = (
-        f"Dropping the best {dropped} paths (top {pct:g}%) moves the median from {before_med} to {after_med} bps "
-        f"and the mean from {before_mean} to {after_mean} bps."
+        f"Without the best {dropped} price histories (top {pct:g}%), the typical result goes from {_pc(before_med)} to "
+        f"{_pc(after_med)}, and the average from {_pc(before_mean)} to {_pc(after_mean)}."
     )
     return AttackResult(
         id=id_,
-        name="Outlier dependence" if kind == "fixed" else f"Outlier drop ({pct:g}%)",
-        hypothesis="The result is not carried by a handful of lucky paths.",
+        name="Lucky-streak check" if kind == "fixed" else f"Without the best {pct:g}%",
+        hypothesis="It isn't carried by a few lucky price histories.",
         numbers=numbers,
         passed=passed,
-        threshold=f"median excess stays > 0 after dropping the top {pct:g}% of paths",
+        threshold=f"Pass: still above 0% without the best {pct:g}%",
         inputs={"pct": pct, "fingerprint": spec.fingerprint},
         summary=summary,
         chart={"type": "bars", "labels": ["median before", "median after", "mean before", "mean after"],
-               "values": [before_med, after_med, before_mean, after_mean], "label": "bps"},
+               "values": [before_med, after_med, before_mean, after_mean], "label": "typical and average, before and after"},
         kind=kind,
     )
 
@@ -412,16 +417,16 @@ def a6_trials(spec: RuleCard, a2: AttackResult, trials: int) -> AttackResult:
     passed = p_adj < ALPHA
     numbers = {"trials": trials, "p_perm": p_perm, "p_adj": round(p_adj, 4), "bar": round(ALPHA / trials, 5)}
     summary = (
-        f"You have tested {trials} distinct version{'s' if trials != 1 else ''} of this idea, so the bar is "
-        f"p < {numbers['bar']}. Adjusted p = {numbers['p_adj']:.4f} (Bonferroni: p_perm × trials)."
+        f"You've tested {trials} version{'s' if trials != 1 else ''} of this idea. Every extra try makes a lucky hit "
+        f"more likely, so the bar is now p < {numbers['bar']}. Your luck score after adjusting: {numbers['p_adj']:.4f}."
     )
     return AttackResult(
         id="A6",
         name="Too many tries",
-        hypothesis="The result is not just the best of many attempts.",
+        hypothesis="It isn't just the best of many attempts.",
         numbers=numbers,
         passed=passed,
-        threshold=f"p_adj = min(1, p_perm × trials) < {ALPHA}",
+        threshold=f"Pass: luck score × number of tries below {ALPHA}",
         inputs={"trials": trials, "fingerprint": spec.fingerprint},
         summary=summary,
         chart={},
@@ -442,7 +447,10 @@ def d_regime_split(spec, paths, ev, by: str = "path_trend", buckets: int = 3) ->
     order = np.argsort(key, kind="stable")
     groups = np.array_split(order, buckets)
     table = []
-    names = ["lowest", "middle", "highest"] if buckets == 3 else [f"q{i + 1}" for i in range(buckets)]
+    if buckets == 3:
+        names = ["falling", "flat", "rising"] if by == "path_trend" else ["calm", "normal", "wild"]
+    else:
+        names = [f"group {i + 1}" for i in range(buckets)]
     for name, g in zip(names, groups):
         rows = [ev.rows[i] for i in g]
         agg = aggregate(rows)
@@ -452,17 +460,18 @@ def d_regime_split(spec, paths, ev, by: str = "path_trend", buckets: int = 3) ->
                       "key_range": [round(float(key[g[0]]), 4), round(float(key[g[-1]]), 4)]})
     positive = sum(t["median_excess_bps"] > 0 for t in table)
     passed = positive == len(table)
-    label = "trend" if by == "path_trend" else "volatility"
-    summary = (f"Split by path {label} into {buckets} groups: median excess " +
-               ", ".join(f"{t['bucket']} {t['median_excess_bps']} bps" for t in table) +
-               f". Positive in {positive} of {buckets} groups.")
+    label = "direction" if by == "path_trend" else "how wild it was"
+    summary = (f"Split into {buckets} groups by the market's {label}: typical result " +
+               ", ".join(f"{t['bucket']} {_pc(t['median_excess_bps'])}" for t in table) +
+               f". Beat holding in {positive} of {buckets} groups.")
     return AttackResult(
-        id="", name=f"Regime split by {label}", hypothesis="The edge is not confined to one kind of market.",
+        id="", name="Rising, flat and falling markets" if by == "path_trend" else "Calm and wild markets",
+        hypothesis="It works in more than one kind of market.",
         numbers={"by": by, "buckets": buckets, "positive_buckets": positive, "table": table}, passed=passed,
-        threshold="median excess > 0 in every group", inputs={"by": by, "buckets": buckets},
+        threshold="Pass: beat holding in every group", inputs={"by": by, "buckets": buckets},
         summary=summary, kind="diagnostic",
         chart={"type": "bars", "labels": [t["bucket"] for t in table], "values": [t["median_excess_bps"] for t in table],
-               "label": f"median excess by path {label} (bps)"},
+               "label": "typical result in each kind of market"},
     )
 
 
@@ -476,13 +485,13 @@ def d_subsample_folds(spec, paths, ev, k: int = 5, seed: int = config.SEEDS["fol
     meds = [_median([ev.rows[i]["excess_bps"] for i in f]) for f in folds]
     positive = sum(m > 0 for m in meds)
     passed = positive == k
-    summary = f"In {k} random folds of the practice paths, the median excess was positive in {positive} of {k} (" + \
-        ", ".join(f"{m}" for m in meds) + " bps)."
+    summary = (f"We split the price histories into {k} random groups: it beat holding in {positive} of {k} (" +
+               ", ".join(_pc(m) for m in meds) + ").")
     return AttackResult(
-        id="", name=f"Subsample folds (k={k})", hypothesis="The sign of the edge is consistent across subsets of paths.",
+        id="", name="Consistency check", hypothesis="It works consistently, not just in part of the data.",
         numbers={"k": k, "fold_medians_bps": meds, "positive_folds": positive}, passed=passed,
-        threshold="median excess > 0 in every fold", inputs={"k": k, "seed": seed}, summary=summary, kind="diagnostic",
-        chart={"type": "bars", "labels": [f"fold {i + 1}" for i in range(k)], "values": meds, "label": "median excess per fold (bps)"},
+        threshold="Pass: beat holding in every group", inputs={"k": k, "seed": seed}, summary=summary, kind="diagnostic",
+        chart={"type": "bars", "labels": [f"fold {i + 1}" for i in range(k)], "values": meds, "label": "typical result in each group"},
     )
 
 
@@ -496,11 +505,11 @@ def d_exposure_check(spec, paths, ev) -> AttackResult:
     disguised = exposure >= 0.7 and corr >= 0.9
     numbers = {"exposure_pct": round(100 * exposure, 1), "return_correlation_with_bh": round(corr, 3),
                "median_excess_bps": _median(ev.excess), "buy_and_hold_in_disguise": disguised}
-    summary = (f"In the market {numbers['exposure_pct']}% of bars; per-path returns correlate {numbers['return_correlation_with_bh']} "
-               f"with buy-and-hold." + (" This looks like buy-and-hold in disguise." if disguised else ""))
+    summary = (f"Money invested {numbers['exposure_pct']}% of the time; its results move with plain holding at a "
+               f"correlation of {numbers['return_correlation_with_bh']}." + (" It's mostly just holding in disguise." if disguised else ""))
     return AttackResult(
-        id="", name="Exposure check", hypothesis="The rule is not just buy-and-hold in disguise.",
-        numbers=numbers, passed=not disguised, threshold="not (exposure >= 70% and correlation >= 0.9)",
+        id="", name="Just holding in disguise?", hypothesis="It's not just buying and holding with extra steps.",
+        numbers=numbers, passed=not disguised, threshold="Pass: not (invested 70%+ of the time and moving with holding at 0.9+)",
         inputs={}, summary=summary, kind="diagnostic",
         chart={},
     )
@@ -518,14 +527,14 @@ def d_holding_sweep(spec, paths, ev, values=None) -> AttackResult:
         table.append({"hold_bars": v, "median_excess_bps": _median(evaluate(card, paths).excess)})
     share = sum(t["median_excess_bps"] > 0 for t in table) / len(table) if table else 0.0
     passed = share >= config.GATE["wobble_min_share"]
-    summary = "Median excess by holding period: " + ", ".join(f"{t['hold_bars']} bars {t['median_excess_bps']} bps" for t in table) + "."
+    summary = "Typical result by holding time: " + ", ".join(f"{t['hold_bars']}h {_pc(t['median_excess_bps'])}" for t in table) + "."
     return AttackResult(
-        id="", name="Holding-period sweep", hypothesis="The edge does not hinge on one holding period.",
+        id="", name="Holding-time check", hypothesis="It doesn't depend on one exact holding time.",
         numbers={"table": table, "share_positive_pct": round(100 * share, 1)}, passed=passed,
-        threshold=f">= {config.GATE['wobble_min_share']:.0%} of holding periods with median excess > 0",
+        threshold=f"Pass: at least {config.GATE['wobble_min_share']:.0%} of holding times beat holding",
         inputs={"values": values}, summary=summary, kind="diagnostic",
         chart={"type": "bars", "labels": [str(t["hold_bars"]) for t in table], "values": [t["median_excess_bps"] for t in table],
-               "label": "median excess by hold_bars (bps)"},
+               "label": "typical result by holding time"},
     )
 
 
@@ -535,10 +544,10 @@ def d_cost_stress(spec, paths, ev, multiplier: int = 2) -> AttackResult:
         raise ValueError("multiplier must be 1..10")
     row = _cost_row(spec, paths, ev, m)
     return AttackResult(
-        id="", name=f"Cost stress x{m}", hypothesis="The edge survives higher trading costs.",
-        numbers=row, passed=row["median_excess_bps"] > 0, threshold=f"median excess > 0 at fees and slippage x{m}",
-        inputs={"multiplier": m}, summary=f"At fees and slippage x{m} the median excess is {row['median_excess_bps']} bps.",
-        kind="diagnostic", chart={"type": "bars", "labels": [f"x{m}"], "values": [row["median_excess_bps"]], "label": "bps"},
+        id="", name=f"Fees x{m} check", hypothesis="It survives higher trading costs.",
+        numbers=row, passed=row["median_excess_bps"] > 0, threshold=f"Pass: above 0% at {m}x fees",
+        inputs={"multiplier": m}, summary=f"Paying {m}x fees, the typical result is {_pc(row['median_excess_bps'])} vs holding.",
+        kind="diagnostic", chart={"type": "bars", "labels": [f"x{m}"], "values": [row["median_excess_bps"]], "label": "typical result"},
     )
 
 
@@ -598,46 +607,46 @@ def practice_gate(results: list[AttackResult]) -> dict:
     checks = []
     trades = a1.numbers["total_trades"]
     checks.append({"id": "trades", "passed": trades >= config.GATE["min_trades"],
-                   "text": f"Total trades {trades} (needs at least {config.GATE['min_trades']})."})
+                   "text": f"Trades: {trades} (needs at least {config.GATE['min_trades']} to judge)."})
     p1 = a1.numbers["sign_p"]
     med1 = a1.numbers["median_excess_bps"]
     p_txt = "n/a" if p1 is None else f"{p1:.4f}"
     if a1.passed:
-        a1_text = f"A1: median excess {med1} bps > 0 and sign-test p = {p_txt} < {ALPHA}."
+        a1_text = f"A1: beat holding, typical {_pc(med1)}, luck score {p_txt} (below {ALPHA})."
     else:
         parts = []
         if med1 <= 0:
-            parts.append(f"median excess {med1} bps (needs > 0)")
+            parts.append(f"typical result {_pc(med1)} vs holding (needs to be above 0%)")
         if p1 is None or p1 >= ALPHA:
-            parts.append(f"sign-test p = {p_txt} (needs < {ALPHA}: "
-                         f"{a1.numbers['wins']} wins vs {a1.numbers['losses']} losses could be chance)")
+            parts.append(f"luck score {p_txt} (needs below {ALPHA}: "
+                         f"{a1.numbers['wins']} wins vs {a1.numbers['losses']} losses could be a coin flip)")
         a1_text = "A1: " + "; ".join(parts) + "."
     checks.append({"id": "A1", "passed": bool(a1.passed), "text": a1_text})
     a6 = by["A6"]
     checks.append({"id": "A6", "passed": bool(a6.passed),
-                   "text": f"A6: adjusted permutation p = {a6.numbers['p_adj']:.4f} after {a6.numbers['trials']} "
-                           f"tr{'ies' if a6.numbers['trials'] != 1 else 'y'} (needs < {ALPHA})."})
+                   "text": f"A2/A6 luck check: luck score {a6.numbers['p_adj']:.4f} after {a6.numbers['trials']} "
+                           f"tr{'ies' if a6.numbers['trials'] != 1 else 'y'} (needs below {ALPHA})."})
     a4 = by["A4"]
     gm = config.GATE["cost_gate_multiplier"]
     checks.append({"id": "A4", "passed": bool(a4.passed),
-                   "text": f"A4: median excess with costs x{gm} is {a4.numbers[f'median_excess_x{gm}_bps']} bps (needs > 0)."})
+                   "text": f"A4 higher fees: typical result at {gm}x fees is {_pc(a4.numbers[f'median_excess_x{gm}_bps'])} (needs above 0%)."})
     a3 = by["A3"]
     checks.append({"id": "A3", "passed": bool(a3.passed),
-                   "text": f"A3: {a3.numbers['share_positive_pct']}% of {a3.numbers['neighbours']} neighbouring rules were "
-                           f"positive (needs at least {config.GATE['wobble_min_share']:.0%})."})
+                   "text": f"A3 fragility: {a3.numbers['share_positive_pct']}% of {a3.numbers['neighbours']} variations beat "
+                           f"holding (needs at least {config.GATE['wobble_min_share']:.0%})."})
     a5 = by["A5"]
     checks.append({"id": "A5", "passed": bool(a5.passed),
-                   "text": f"A5: without the best {a5.numbers['dropped_paths']} paths the median is "
-                           f"{a5.numbers['median_after_bps']} bps (needs > 0)."})
+                   "text": f"A5 lucky streak: without the best {a5.numbers['dropped_paths']} price histories the typical result is "
+                           f"{_pc(a5.numbers['median_after_bps'])} (needs above 0%)."})
     failing = [c for c in checks if not c["passed"]]
     if not checks[0]["passed"]:
         status = "INCONCLUSIVE"
         headline = "Too few trades to judge."
     elif failing:
         status = "REJECTED"
-        headline = f"Failed {len(failing)} of {len(checks)} practice checks."
+        headline = f"Failed {len(failing)} of {len(checks)} checks."
     else:
         status = "ELIGIBLE"
-        headline = "Passed every practice check: eligible for the one-shot vault."
+        headline = "Passed every check: the final exam is unlocked (one attempt)."
     return {"status": status, "vault_eligible": status == "ELIGIBLE", "headline": headline,
             "checks": checks, "failing": [c["text"] for c in failing], "thresholds": dict(config.GATE)}

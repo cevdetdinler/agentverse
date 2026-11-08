@@ -18,7 +18,7 @@ from .stats import aggregate, bootstrap_median_ci
 from .verdict import decide
 
 VAULT_INPUTS = config.DATA_DIR / "vault" / "inputs.jsonl"
-BLOCK_MESSAGE = ("This idea already used its vault. Changes made after seeing the vault can't be tested fairly.")
+BLOCK_MESSAGE = ("This idea already took its final exam. Changes made after seeing the result can't be tested fairly.")
 
 
 class VaultError(Exception):
@@ -42,11 +42,11 @@ def vault_status(ledger: Ledger, fingerprint: str) -> dict:
     """Read-only view for the UI: can this spec open the vault, and if not, why."""
     approved = ledger.last("spec_approved", fingerprint=fingerprint)
     if not approved:
-        return {"state": "unknown_spec", "can_open": False, "reason": "Approve the rule card first."}
+        return {"state": "unknown_spec", "can_open": False, "reason": "Approve the rules first."}
     idea_id = approved["payload"]["idea_id"]
     stored = ledger.last("vault_result", fingerprint=fingerprint)
     if stored:
-        return {"state": "opened", "can_open": False, "reason": "Already opened for this exact rule card.",
+        return {"state": "opened", "can_open": False, "reason": "Already taken for these exact rules.",
                 "result": stored["payload"]}
     other = [e for e in ledger.find("vault_result", idea_id=idea_id) if e["payload"]["fingerprint"] != fingerprint]
     if other:
@@ -54,11 +54,11 @@ def vault_status(ledger: Ledger, fingerprint: str) -> dict:
                 "opened_by": other[-1]["payload"]["fingerprint"]}
     practice = ledger.last("verdict", fingerprint=fingerprint, stage="practice")
     if not practice:
-        return {"state": "locked", "can_open": False, "reason": "Run the attacks first."}
+        return {"state": "locked", "can_open": False, "reason": "Run the checks first."}
     if not practice["payload"]["gate"]["vault_eligible"]:
         return {"state": "ineligible", "can_open": False,
-                "reason": "Only ideas that pass every practice check may use the vault: " + practice["payload"]["gate"]["headline"]}
-    return {"state": "ready", "can_open": True, "reason": "One shot. The result is final for this idea."}
+                "reason": "Only ideas that pass every check can take the final exam: " + practice["payload"]["gate"]["headline"]}
+    return {"state": "ready", "can_open": True, "reason": "One attempt. The result is final for this idea."}
 
 
 def is_contaminated(ledger: Ledger, fingerprint: str) -> bool:

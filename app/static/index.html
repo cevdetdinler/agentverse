@@ -31,20 +31,20 @@
     <div id="tab-test">
       <section class="hero">
         <h1>Would you put money on it?</h1>
-        <p class="lede">Type a trading hunch. Skeptic turns it into exact rules, <span id="lede-data">backtests them on real prices with real costs,</span>
+        <p class="lede">Type a trading hunch. Skeptic turns it into exact rules, <span id="lede-data">tests them on real past prices with real fees,</span>
           then tries to break them before you do.</p>
         <div id="market-note" class="market-note hidden"></div>
         <div class="hunch-wrap">
           <div class="hunch-box">
             <div class="hunch-ghost" id="hunch-ghost" aria-hidden="true"></div>
             <textarea id="hunch" class="hunch-input" rows="1" maxlength="1000" spellcheck="false"
-              placeholder="e.g. BTC bounces back after a big drop"></textarea>
+              placeholder="e.g. Bitcoin bounces back after a big drop"></textarea>
           </div>
           <div id="suggest" class="suggest hidden"></div>
         </div>
         <div id="variant-pill" class="variant-pill hidden"></div>
         <div class="row" style="margin-top:16px">
-          <button id="go" class="btn primary">Cross-examine this idea</button>
+          <button id="go" class="btn primary">Test this idea</button>
           <span class="small muted"><span class="kbd">Tab</span> accepts a suggestion · <span class="kbd">Enter</span> submits</span>
           <div class="spacer"></div>
           <label class="btn ghost small" title="Upload a video clip or screenshot of a trading claim">
@@ -64,7 +64,7 @@
 
     <!-- ======================================================= HISTORY -->
     <div id="tab-history" class="hidden">
-      <div class="section-head"><h2>History</h2><span class="muted small">Every idea, every version, every verdict. Trials count per idea.</span></div>
+      <div class="section-head"><h2>History</h2><span class="muted small">Every idea, every version, every verdict. Tries are counted per idea.</span></div>
       <div id="history"></div>
     </div>
 
@@ -72,9 +72,9 @@
     <div id="tab-log" class="hidden">
       <div class="section-head">
         <h2>Audit log</h2>
-        <span class="muted small">Append-only JSONL. Each entry's hash covers the previous hash, so editing any line breaks the chain.</span>
+        <span class="muted small">A tamper-proof record of everything that happened. Each entry is sealed to the one before it, so changing any line is detected.</span>
         <div class="spacer"></div>
-        <button id="verify-btn" class="btn small">Re-verify chain</button>
+        <button id="verify-btn" class="btn small">Check the log</button>
       </div>
       <div id="log-verify" style="margin-bottom:12px"></div>
       <div class="row" style="margin-bottom:12px" id="log-filters"></div>

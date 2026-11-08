@@ -226,3 +226,6 @@ section.step { margin-top: var(--gutter); }
   .section-head > .muted { flex-basis: 100%; }
   .hunch-input, .hunch-ghost { font-size: 16px; }
 }
+
+/* the rules in plain words, under the exact (editable) rules */
+.plain-rules { margin: -6px 0 18px; padding: 14px 18px; border-radius: var(--r-btn); background: #f5f3ff; color: #3b2a7a; font-size: 16px; line-height: 1.5; }

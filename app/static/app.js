@@ -69,6 +69,8 @@ async function boot() {
   $("#model-badge").textContent = S.config.models.reason;
   setChain(S.config.chain);
   try { S.library = (await api("/api/library")).hunches || []; } catch { S.library = []; }
+  loadToday();
+  setInterval(loadToday, 5 * 60 * 1000);
   refreshHistory();
   wireTabs();
   wireHunch();
@@ -136,13 +138,23 @@ function jaccard(a, b) {
   return inter / (A.size + B.size - inter);
 }
 
+// ideas from today's real markets (live 24-hour summary, turned into testable ideas by plain code on the server)
+async function loadToday() {
+  try {
+    const out = await api("/api/today");
+    S.today = out.ok ? out.ideas || [] : [];
+  } catch { S.today = []; }
+  if (document.activeElement === $("#hunch") && !$("#hunch").value.trim()) renderSuggest();
+}
+
 function layer1(q) {
   const ql = q.trim().toLowerCase();
   if (ql.length < 2) return [];
   const past = (S.history?.hunches || []).map((h) => ({ text: h.text, src: "yours" }));
-  const lib = S.library.map((t) => ({ text: t, src: "library" }));
+  const today = (S.today || []).map((i) => ({ text: i.hunch, src: "today: " + i.fact }));
+  const lib = S.library.map((t) => ({ text: t, src: "example" }));
   const seen = new Set();
-  return [...past.reverse(), ...lib]
+  return [...past.reverse(), ...today, ...lib]
     .map((h) => {
       const t = h.text.toLowerCase();
       const score = t.startsWith(ql) ? 2 + ql.length / t.length : t.includes(ql) ? 1 : jaccard(ql, t);
@@ -163,7 +175,7 @@ function variantWarning(q) {
   }
   if (!best || q.trim().length < 12) { pill.classList.add("hidden"); return; }
   const n = best.trials;
-  pill.innerHTML = `⚠ You've tested ${n} variant${n === 1 ? "" : "s"} of this idea. Another one raises the bar to <span class="mono">p &lt; 0.05/${n + 1} = ${(0.05 / (n + 1)).toPrecision(2)}</span>`;
+  pill.innerHTML = `⚠ You've tested ${n} version${n === 1 ? "" : "s"} of this idea. Each extra try makes the luck check stricter: the next one needs a luck score below <span class="mono">${(0.05 / (n + 1)).toPrecision(2)}</span>`;
   pill.title = `Similar to: "${best.hunch_text}" (token overlap ${(best.sim * 100).toFixed(0)}%, computed in code, not by the model)`;
   pill.classList.remove("hidden");
 }
@@ -229,6 +241,19 @@ function renderSuggest() {
   const box = $("#suggest");
   const l1 = layer1(q);
   const l2 = S.suggestions.filter((s) => s.toLowerCase() !== q.toLowerCase());
+  const item = (text, hint) => `<div class="item" data-text="${esc(text)}">${esc(text)}${hint ? `<span class="hint">${esc(hint)}</span>` : ""}</div>`;
+  if (!q.trim() && document.activeElement === $("#hunch")) {  // empty box: start from today's real markets
+    const today = (S.today || []).slice(0, 5);
+    const examples = S.library.slice(0, today.length ? 3 : 6);
+    let html = "";
+    if (today.length) html += `<div class="group"><div class="label">Today’s markets · live from Binance · ideas you could test</div>${today.map((i) => item(i.hunch, i.fact)).join("")}</div>`;
+    if (examples.length) html += `<div class="group"><div class="label">Ideas people often post</div>${examples.map((t) => item(t)).join("")}</div>`;
+    if (!html) { box.classList.add("hidden"); return; }
+    box.innerHTML = html;
+    box.classList.remove("hidden");
+    box.querySelectorAll(".item").forEach((it) => it.addEventListener("mousedown", (e) => { e.preventDefault(); accept(it.dataset.text); }));
+    return;
+  }
   if (!l1.length && !l2.length || document.activeElement !== $("#hunch")) { box.classList.add("hidden"); return; }
   let html = "";
   if (l2.length) html += `<div class="group"><div class="label">Gemini · ${esc(S.config.models.router)} · precise wording</div>${l2.map((t) => `<div class="item" data-text="${esc(t)}">${esc(t)}</div>`).join("")}</div>`;
@@ -478,6 +503,59 @@ function keyNumber(r) {
   }
 }
 
+// ---- the same results for three audiences: simple (why it matters), standard, technical (method + raw numbers)
+const WHY = {
+  A1: "The first question anyone asks: did it do better than simply buying at the start and holding? Winning a bit more than half the time can still be a coin flip, so we add a luck score.",
+  A2: "Random buying and selling wins sometimes. We scramble the order of each price history so no pattern can exist, then rerun your exact rule. If the scrambled markets do as well, your pattern isn’t what made the money.",
+  A3: "A real pattern shouldn’t vanish if you change “24 hours” to “22 hours”. If only your exact numbers work, they were probably tuned to the past.",
+  A4: "Fees and price gaps eat small gains. If paying double fees wipes the result out, it won’t survive real trading.",
+  A5: "If a handful of lucky price histories carry the whole result, it’s a lottery win, not a strategy.",
+  A6: "Try enough versions of an idea and one will look good by pure chance. Each extra try raises the bar.",
+};
+const VIEWS = { simple: "Simple", standard: "Standard", technical: "Technical" };
+function currentView() {
+  try { const v = localStorage.getItem("skeptic_view"); if (v in VIEWS) return v; } catch { /* storage blocked */ }
+  return "standard";
+}
+
+function techLine(r) {
+  const n = r.numbers || {};
+  const p = (x) => (x == null ? "n/a" : Number(x).toFixed(4));
+  switch (r.id) {
+    case "A1": return `Exact two-sided sign test vs buy-and-hold (ties excluded), n = ${n.paths}: ${n.wins}W/${n.losses}L, p = ${p(n.sign_p)}. Median excess ${n.median_excess_bps} bps of starting capital, bootstrap 95% CI [${n.median_excess_ci95_bps?.join(", ")}] (2,000 path resamples); mean ${n.mean_excess_bps} bps; ${n.total_trades} trades; exposure ${n.exposure_pct}%; mean max drawdown ${n.mean_max_drawdown_bps} bps.`;
+    case "A2": return `Surrogate permutation test: one-bar log returns shuffled within each path, K = ${n.K}; statistic = mean excess across paths; p_perm = (1 + #{surrogate ≥ observed}) / (1 + K) = ${p(n.p_perm)}. Observed ${n.observed_mean_excess_bps} bps vs surrogate median ${n.perm_mean_excess_median_bps} bps (95th pct ${n.perm_mean_excess_p95_bps}).`;
+    case "A3": return `Parameter sensitivity: one-at-a-time ±10/20/30% on every numeric parameter plus a 3×3 joint grid on the two most sensitive; ${n.share_positive_pct}% of ${n.neighbours} neighbours with median excess > 0 (threshold 60%); spec rank ${n.user_spec_rank}/${n.rank_out_of}; neighbour medians ${n.worst_neighbour_median_bps} to ${n.best_neighbour_median_bps} bps. No neighbour is ever substituted.`;
+    case "A4": return `Cost stress: strategy pays fee and slippage ×2 / ×3 while the buy-and-hold benchmark keeps ×1 (conservative). Median excess ${n.median_excess_x1_bps} / ${n.median_excess_x2_bps} / ${n.median_excess_x3_bps} bps at ×1 / ×2 / ×3; gate at ×2 > 0.`;
+    case "A5": return `Outlier dependence: drop top ${n.pct}% of paths by excess (${n.dropped_paths} paths). Median ${n.median_before_bps} → ${n.median_after_bps} bps; mean ${n.mean_before_bps} → ${n.mean_after_bps} bps; gate: median after > 0.`;
+    case "A6": return `Multiple-testing (Bonferroni): p_adj = min(1, p_perm × trials) = min(1, ${p(n.p_perm)} × ${n.trials}) = ${p(n.p_adj)}; equivalent per-trial α = ${n.bar}. Trials = distinct rule fingerprints approved in this idea’s lineage.`;
+    default: {
+      const tool = r.inputs?.tool || "diagnostic";
+      const params = Object.entries(r.inputs || {}).filter(([k]) => !["tool", "fingerprint", "alternative_explanation", "supports_if", "refutes_if"].includes(k))
+        .map(([k, v]) => `${k}=${JSON.stringify(v)}`).join(", ");
+      const nums = Object.entries(n).filter(([k, v]) => k !== "table" && typeof v !== "object").map(([k, v]) => `${k} = ${v}`).join("; ");
+      const table = Array.isArray(n.table) ? " · per group: " + n.table.map((t) => `${t.bucket ?? t.hold_bars ?? ""} ${t.median_excess_bps} bps`).join(", ") : "";
+      return `Pre-registered diagnostic ${tool}(${params}). ${nums}${table}.`;
+    }
+  }
+}
+
+function contextCard(a) {
+  const sp = S.approved.spec;
+  const a1 = (a.results || []).find((r) => r.id === "A1")?.numbers || {};
+  const synth = S.market === "synthetic";
+  const data = synth
+    ? `${a1.paths} made-up price histories with a hidden “dip, then bounce back” pattern (so there is something real to find)`
+    : `${a1.paths} real crypto price histories from Binance (hourly or 4-hourly, 2 to 10 days each). Coin names and dates are hidden, and half are flipped upside down, so “crypto went up” can’t make a rule look good on its own`;
+  return `
+    <div class="context-card">
+      <div class="ctx-row"><div class="ctx-k">Your idea</div><div class="ctx-v"><b>“${esc(sp.hunch_text || S.hunch || sp.name)}”</b></div></div>
+      <div class="ctx-row"><div class="ctx-k">As exact rules</div><div class="ctx-v">${esc(plainRules(sp).replace(/^In plain words: (.)/, (_, ch) => ch.toUpperCase()))}</div></div>
+      <div class="ctx-row"><div class="ctx-k">Tested on</div><div class="ctx-v">${esc(data)}. Each history uses its own real trading fee and price gap.</div></div>
+      <div class="ctx-row"><div class="ctx-k">Compared with</div><div class="ctx-v">Simply buying at the start and holding to the end (“just holding”). A rule only counts as good if it does better than that.</div></div>
+      <div class="ctx-row"><div class="ctx-k">At a glance</div><div class="ctx-v">The rule made <b>${a1.total_trades}</b> trades and had money invested <b>${a1.exposure_pct}%</b> of the time. It beat just holding in <b>${a1.wins} of ${a1.paths}</b> histories; its typical result was <b>${bps(a1.median_excess_bps)}</b> and its average <b>${bps(a1.mean_excess_bps)}</b>.</div></div>
+    </div>`;
+}
+
 function niceParam(label) {
   return String(label).replace(/^entry\[\d+\]\./, "buy rule ").replace(/^exit\[\d+\]\./, "sell rule ")
     .replace("exit.hold_bars", "hours held").replace("exit.take_profit", "profit target").replace("exit.stop_loss", "loss limit")
@@ -527,15 +605,20 @@ function attackCard(r) {
   const k = keyNumber(r);
   const prereg = r.kind === "diagnostic" ? `<div class="prereg"><b>Gemini’s worry about this idea (written down before the check ran):</b> ${esc(r.hypothesis)}
       ${r.inputs?.supports_if ? `<div class="small muted" style="margin-top:6px">Worry confirmed if: ${esc(r.inputs.supports_if)}<br>Worry ruled out if: ${esc(r.inputs.refutes_if)}</div>` : ""}</div>` : "";
+  const why = r.kind === "diagnostic"
+    ? `Gemini worried about this specific idea: ${r.hypothesis}`
+    : WHY[r.id] || r.hypothesis;
   return `<div class="attack" id="card-${r.id}">
     <div class="top"><span class="aid">${r.id}</span><span class="name">${esc(r.name)}</span>
       ${r.kind === "diagnostic" ? `<span class="badge violet">Gemini’s idea</span>` : ""}
       <span class="badge ${r.passed ? "pass" : "fail"}">${r.passed ? "pass" : "fail"}</span></div>
-    <div><span class="key">${esc(k.v)}<span class="unit">${esc(k.u)}</span></span><div class="sub">${esc(k.sub)}</div></div>
-    ${chartSVG(r.chart)}
-    ${prereg}
-    <div class="summary">${esc(r.summary)}</div>
-    <div class="foot"><span class="small muted">${esc(r.kind === "diagnostic" ? "Extra check · " : "")}${esc(r.threshold)}</span>
+    <div><span class="key">${esc(k.v)}<span class="unit">${esc(k.u)}</span></span><div class="sub v-detail">${esc(k.sub)}</div></div>
+    <p class="why v-why ${r.kind === "diagnostic" ? "v-simple" : ""}"><b>Why this check:</b> ${esc(why)}</p>
+    <div class="v-detail">${chartSVG(r.chart)}</div>
+    <div class="v-detail">${prereg}</div>
+    <div class="summary v-detail">${esc(r.summary)}</div>
+    <p class="tech v-tech">${esc(techLine(r))}</p>
+    <div class="foot"><span class="small muted v-detail">${esc(r.kind === "diagnostic" ? "Extra check · " : "")}${esc(r.threshold)}</span>
       <button class="btn ghost small nowrap" data-trace="${r.id}">trace&nbsp;→</button></div>
   </div>`;
 }
@@ -544,14 +627,35 @@ function renderAttacks() {
   const a = S.attacks, g = a.gate;
   const sec = $("#sec-attacks");
   const tone = g.status === "ELIGIBLE" ? "ok" : g.status === "INCONCLUSIVE" ? "warn" : "bad";
+  const view = currentView();
+  sec.dataset.view = view;
   sec.innerHTML = `
     <div class="section-head"><span class="step-no">04</span><h2>Trying to break it</h2>
-      <span class="muted small">Six standard checks (A1–A6) decide pass or fail. Purple cards are extra checks Gemini chose for this idea, written down before they ran.</span></div>
+      <span class="muted small">Six standard checks (A1–A6) decide pass or fail. Purple cards are extra checks Gemini chose for this idea, written down before they ran.</span>
+      <div class="spacer"></div>
+      <nav class="tabs view-switch" aria-label="How much detail">${Object.entries(VIEWS).map(([k, label]) =>
+        `<button class="tab vw ${k === view ? "active" : ""}" data-view="${k}">${label}</button>`).join("")}</nav></div>
+    ${contextCard(a)}
+    <details class="howto">
+      <summary>How to read these cards</summary>
+      <ul>
+        <li><b>pass / fail</b>: whether your rule survived that check. One fail on A1–A6 is enough to reject the idea.</li>
+        <li><b>Typical result</b>: how your rule did compared with just holding, on a typical price history (half did better, half worse).</li>
+        <li><b>Luck score</b>: how easily luck alone could produce a result this good. Below 0.05 means luck is an unlikely explanation.</li>
+        <li><b>Purple cards</b>: checks Gemini suggested for this particular idea. Its worry was written down before the check ran, so it can’t be changed afterwards.</li>
+        <li><b>trace →</b>: shows exactly where a number came from. No AI calculates any number on this page.</li>
+      </ul>
+    </details>
     <div class="gate"><span class="badge ${tone}">${esc(g.status === "ELIGIBLE" ? "checks: passed" : "checks: " + g.status.toLowerCase())}</span>
       <div><b style="color:var(--ink)">${esc(g.headline)}</b>${g.failing.length ? `<ul>${g.failing.map((f) => `<li>${esc(f)}</li>`).join("")}</ul>` : ""}
       ${a.plan_error ? `<div class="small muted">Gemini couldn’t suggest extra checks this time (${esc(a.plan_error)}); the six standard checks still ran.</div>` : ""}</div></div>
     <div class="attack-grid">${[...a.results, ...a.diagnostics].map(attackCard).join("")}</div>`;
   sec.querySelectorAll("[data-trace]").forEach((b) => (b.onclick = () => openTrace(b.dataset.trace)));
+  sec.querySelectorAll(".vw").forEach((b) => (b.onclick = () => {
+    sec.dataset.view = b.dataset.view;
+    sec.querySelectorAll(".vw").forEach((x) => x.classList.toggle("active", x === b));
+    try { localStorage.setItem("skeptic_view", b.dataset.view); } catch { /* storage blocked: still switches */ }
+  }));
 }
 
 // ------------------------------------------------------------------ step 4: vault

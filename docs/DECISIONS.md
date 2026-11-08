@@ -47,3 +47,17 @@ The guard checks that every number in the explanation equals some tool output, a
 ## D7: A second naive screen in E3
 
 All ten E3 hunches have a negative practice *mean* excess, so the spec's naive screen ("approve if mean excess > 0") rejects every one and the comparison carries no information. We add a second naive screen, "approve if the rule beat buy-and-hold on more than half of the practice paths", which is a common retail "win rate" readout. It was added after seeing that the first screen was degenerate, but **before** any hidden-challenge result existed.
+
+## D8: Ideas from today's real markets in the empty hunch box (added at the user's request; not in the spec)
+
+When the hunch box is empty, the app suggests ideas built from today's actual market moves. For example: "XRP $1.16, −1.5% today → Buy XRP if it drops 3% or more within 24 hours, and sell 24 hours later". `app/today.py` reads Binance's free, public **24-hour summary** (`ticker/24hr`: last price, 24 h change, high, low) for six large coins. Plain code turns those numbers into rule-expressible ideas; no model is called. It caps the list at two ideas per coin and two per kind, so a quiet day doesn't produce six identical suggestions.
+
+**Display only:**
+- The live data never reaches a backtest, an attack, the vault or `adapter.py`.
+- It fetches no price history, so nothing in it could be used to look up a hidden test path.
+- `tests/test_today.py::test_live_data_never_reaches_the_maths` checks that no file under `skeptic/`, `eval/` or `adapter.py` imports it or contains a live-market URL.
+- The kit's provenance strings stay absent (`tests/test_provenance.py`).
+
+**Offline-safe:**
+- The request is made server-side with a 2.5 s timeout and cached for 5 minutes. After a failure it is retried after 30 s.
+- On any failure the box shows the library examples instead and never waits on the network (`test_offline_falls_back_silently`).

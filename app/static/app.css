@@ -229,3 +229,26 @@ section.step { margin-top: var(--gutter); }
 
 /* the rules in plain words, under the exact (editable) rules */
 .plain-rules { margin: -6px 0 18px; padding: 14px 18px; border-radius: var(--r-btn); background: #f5f3ff; color: #3b2a7a; font-size: 16px; line-height: 1.5; }
+
+/* ---------- "Trying to break it": context for the idea, and three levels of detail */
+.context-card { border: 1px solid var(--hairline); border-radius: var(--r-card); padding: 20px 24px; margin-bottom: 14px; background: var(--canvas); }
+.ctx-row { display: grid; grid-template-columns: 140px 1fr; gap: 16px; padding: 8px 0; }
+.ctx-row + .ctx-row { border-top: 1px solid var(--hairline); }
+.ctx-k { font: 600 12px var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: .4px; padding-top: 2px; }
+.ctx-v { font-size: 14.5px; color: var(--body); }
+.ctx-v b { color: var(--ink); }
+.howto { margin: 0 0 14px; font-size: 14px; }
+.howto summary { cursor: pointer; color: var(--ink); font-weight: 500; }
+.howto ul { margin: 8px 0 0; padding-left: 18px; }
+.howto li + li { margin-top: 4px; }
+.view-switch .tab { font-size: 13px; padding: 5px 12px; }
+.attack .why { margin: 0; font-size: 13.5px; color: var(--body); background: var(--canvas); border-radius: var(--r-btn); padding: 10px 12px; }
+.attack .tech { margin: 0; font: 400 12px/1.5 var(--mono); color: var(--ink); background: var(--canvas); border: 1px dashed #c7cbd1; border-radius: var(--r-btn); padding: 10px 12px; }
+#sec-attacks .v-tech { display: none; }
+#sec-attacks[data-view="technical"] .v-tech { display: block; }
+#sec-attacks[data-view="technical"] .v-why { display: none; }
+#sec-attacks[data-view="simple"] .v-detail { display: none; }
+#sec-attacks:not([data-view="simple"]) .v-simple { display: none; }
+@media (max-width: 720px) {
+  .ctx-row { grid-template-columns: 1fr; gap: 2px; }
+}

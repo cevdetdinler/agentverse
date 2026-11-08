@@ -4,43 +4,75 @@
 
 *Every trading bot here will tell you how much money it made. Ours tells you whether to believe it.*
 
-**Who it's for:** a trader testing a hunch, such as a UCL Trading Society member or a retail crypto trader.
-**The failure it prevents:** believing a backtest that only looked good because of luck, over-tweaking, leaked future data or ignored costs, and then trading it.
+**Who it's for:** someone with a trading hunch, such as a student, a UCL Trading Society member, or anyone trading crypto from their phone.
+**The mistake it prevents:** believing a backtest that only looked good because of luck, over-tweaking, leaked future data or ignored fees, and then putting money behind it.
 
 UCL AgentVerse 2026 · Finance track · paper trading only: there is no broker, exchange-order or real-money code anywhere in this repo.
 
-![Attacks on a real-market hunch](docs/img/attacks.png)
+> **Example.** Sam sees a post: *"My secret BTC strategy made +340% this year: buy when RSI(14) drops below 25, sell when it gets back above 55."* Skeptic tests that rule on 300 real price histories. It **beat just holding in 169 of 300**, which a normal backtest would call a winner. The **luck check** then found that **14 of 200 scrambled markets did just as well**, and **on average it lost 0.33% compared with just holding**. Verdict: **REJECTED**. The "+340%" claim never entered the test.
 
-## How it works: the LLM stops where the maths starts
+![What Skeptic tested, and the checks that try to break it](docs/img/checks.png)
+
+## How it works: Gemini does the talking, plain code does all the maths
 
 ```
- trader types a hunch ──► Gemini (gemini-4-argon) ──► clarifying questions ──► RULE CARD (JSON)
-                          translates text only                                     │
-                                                                    HUMAN approves ▼ (fingerprint, trial counted)
- ┌─────────────────────────────── deterministic Python, integer pence / bps ───────────────────────────────┐
- │ A1 baseline   A2 shuffled-returns   A3 wobble   A4 cost stress   A5 outliers   A6 too-many-tries          │
- │ D1–D3: diagnostics Gemini CHOSE and PRE-REGISTERED (alternative explanation + supports/refutes)           │
- │        from the A1 summary only, logged before they ran                                                  │
- │ practice gate (thresholds in skeptic/config.py) ──► vault: one shot per idea, HUMAN click only,           │
- │                                                    pass mark pre-committed to the log before it opens      │
- │ verdict label SURVIVED / INCONCLUSIVE / REJECTED decided by code                                         │
- └──────────────────────────────────────────────────────────────────────────────────────────────────────────┘
-                          Gemini explains the verdict ──► NUMBER GUARD: every number in the text must match a
-                                                          tool output (regenerate once, then strip + log)
- every step ──► append-only, SHA-256 hash-chained ledger (logs/ledger.jsonl), "Log intact ✓" re-verified from disk
+ you type an idea ─► Gemini (gemini-4-argon) ─► clarifying questions ─► YOUR RULES, written down exactly (JSON)
+ (or upload a post)    reads and translates only                                    │
+                                                                       YOU approve ▼  (fingerprint, try counted)
+ ┌──────────────────────── deterministic Python, integer pence / basis points ──────────────────────────┐
+ │ A1 did it beat just holding?  A2 luck check  A3 fragility check  A4 higher fees  A5 lucky streaks      │
+ │ A6 too many tries   ·   D1–D3: extra checks Gemini PICKED for this idea, its worry written down first    │
+ │ pass mark set in skeptic/config.py ─► FINAL EXAM ("vault"): unseen prices, one attempt per idea,       │
+ │                                       only YOU can open it, pass mark logged before it opens            │
+ │ verdict SURVIVED / INCONCLUSIVE / REJECTED decided by code                                            │
+ └──────────────────────────────────────────────────────────────────────────────────────────────────────┘
+                        Gemini explains the verdict in plain words ─► NUMBER CHECK: every number it writes must
+                                                                       match one the code produced (retry once,
+                                                                       then cut the sentence and log it)
+ every step ─► tamper-proof log (SHA-256 hash chain, logs/ledger.jsonl), "Log intact ✓" re-checked from disk
 ```
 
-The model **never computes, edits or invents a number**, approves a rule card, opens the vault or changes a threshold. It has no code path to do any of those.
+The model **never computes, edits or invents a number**, approves your rules, opens the final exam or moves a pass mark. It has no code path to do any of those.
+
+### Plain names and technical names
+
+The app and the deck use plain words. The evidence reports and the code use the technical names.
+
+| In the app | ID | What it does, technically |
+|---|---|---|
+| Did it beat just holding? | A1 | Exact two-sided sign test vs buy-and-hold over all practice paths; median excess with a bootstrap 95% CI |
+| Luck check | A2 | Surrogate permutation test: each path's one-bar returns shuffled K times, the exact rule rerun (DECISIONS D1) |
+| Fragility check | A3 | Parameter sensitivity ±10/20/30% plus a 3×3 joint grid; ≥ 60% of neighbours must stay positive |
+| Higher fees check | A4 | Strategy pays ×2 / ×3 fees and slippage, benchmark stays at ×1 (DECISIONS D2) |
+| Lucky-streak check | A5 | Median must stay > 0 after dropping the top 5% of paths |
+| Too many tries | A6 | Bonferroni: p_adj = min(1, p_perm × distinct versions tried) |
+| Extra checks (purple) | D1–D3 | Diagnostics Gemini chose from a fixed menu, with the alternative explanation pre-registered in the log |
+| Final exam | vault | One-shot holdout of 150 unseen paths with a pre-committed pass mark |
+| Typical result · luck score | | Median excess vs buy-and-hold · sign-test or permutation p-value |
 
 ### Gemini models used (live calls through the Interactions API, `google-genai`)
 
 | Model | Used for |
 |---|---|
-| `gemini-4-argon` | turning a hunch into a rule card plus clarifying questions (multi-turn, same interaction thread); choosing and pre-registering diagnostics; explaining the verdict under the number guard; suggesting one cleaner hypothesis; reading a finfluencer clip or screenshot (video/image to hunch) |
-| `gemini-3.5-flash-lite` | autocomplete layer 2: precise completions after a 400 ms pause |
+| `gemini-4-argon` | turning an idea into exact rules, plus clarifying questions (multi-turn, same interaction thread); picking extra checks and writing down its worry first; explaining the verdict under the number check; suggesting one simpler version; reading a screenshot or video of a trading claim |
+| `gemini-3.5-flash-lite` | autocomplete: precise completions after a 400 ms pause |
 | `gemini-3.8-flash` | configured as the fallback "fast" model |
 
-Every call is logged with its interaction ID and token counts. Per-session call caps, timeouts and one retry on a fresh connection are enforced in `skeptic/agent.py`.
+Every call is logged with its interaction ID and token counts. Per-session call caps, timeouts and one retry on a fresh connection are enforced in `skeptic/agent.py`. Gemini is told to use plain words: "luck score", not "p-value"; "just holding", not "buy-and-hold"; percent, not basis points.
+
+## Using the app
+
+- **Start from today's market.** Click into the empty box. The app suggests ideas built from today's actual moves, for example *"XRP $1.16, −1.5% today → Buy XRP if it drops 3% or more within 24 hours, and sell 24 hours later"*. They come from Binance's free public 24-hour summary, turned into ideas by plain code, with no model involved. They are display-only: they never feed a test. They are also offline-safe: if the venue Wi-Fi is down, you get the examples below instead (DECISIONS D8).
+- **Or pick an idea people often post**, such as "Bitcoin always bounces after a 10% drop in a day", or type your own. Autocomplete matches your past ideas and the examples instantly, then Gemini suggests precise wording when you pause. If an idea looks like one you've already tested, an amber pill tells you the luck check will now be stricter.
+- **Or upload a post or video** ("Check a post or video…"). Gemini quotes the claim and drafts the idea, and you still approve the rules.
+- **Approve the rules.** They are shown exactly, with a plain-words sentence underneath, and every number is editable.
+- **"Trying to break it"** opens with what was tested (your idea, the rules in plain words, the data, what "just holding" means, and the result at a glance). Switch between three levels of detail:
+  - **Simple:** big number, pass or fail, and one sentence on why each check matters.
+  - **Standard:** adds charts and summaries.
+  - **Technical:** adds the exact method and raw numbers, for quant readers.
+- **trace →** on any card shows where a number came from: data file hash → rule fingerprint → function → log entry → Gemini interaction IDs.
+
+![Today's market ideas in the empty box](docs/img/today_ideas.png)
 
 ## Setup (Windows, Python 3.11+)
 
@@ -54,25 +86,25 @@ Then fetch the data with the AgentVerse kit (folder `agentverse/` dropped into t
 
 ```powershell
 .venv\Scripts\python.exe -m uvicorn app.server:app --port 8000
-.venv\Scripts\python.exe -m pytest           # 95 tests
+.venv\Scripts\python.exe -m pytest           # 101 tests, no network or API key needed
 ```
 
-Open http://127.0.0.1:8000.
+Open http://127.0.0.1:8000. The server doesn't reload code by itself, so restart it after pulling changes.
 
 ## Two markets
 
 The top-bar switch selects which data the app tests on:
 
 - **Real market** (default): anonymised Binance Vision price windows fetched with the kit. Every result we report comes from here.
-- **Synthetic market**: prices from our own generator (`skeptic/synthetic.py`) with a planted "dip, then rebound" pattern, so an edge exists to be found. It is always labelled as synthetic in the UI. On real data almost no simple hunch survives (see below), so this is where the full vault flow can be shown working: pass, open the vault, tweak a parameter, get blocked. It has its own ledger, trial counts and vault, and nothing crosses between the two markets.
+- **Synthetic market**: prices from our own generator (`skeptic/synthetic.py`) with a hidden "dip, then bounce back" pattern, so a real pattern exists to be found. It is always labelled as synthetic in the UI. On real data almost no simple idea survives (see below), so this is where the full final-exam flow can be shown working: pass, open the final exam, change a number, get blocked. It has its own log, try counts and final exam, and nothing crosses between the two markets (DECISIONS D6).
 
-| Vault opened (synthetic market) | Tweak after the vault: blocked and logged (synthetic market) |
+| Final exam opened (synthetic market) | Changed after the final exam: blocked and logged (synthetic market) |
 |---|---|
 | ![](docs/img/vault_opened_synthetic.png) | ![](docs/img/vault_blocked_synthetic.png) |
 
 ## Evidence
 
-Each piece is labelled as **independent** (judged by someone else's code or data we can't see) or **self-assessment** (we wrote both sides).
+Each piece is labelled as **independent** (judged by someone else's code or data we can't see) or **self-assessment** (we wrote both sides). Technical terms are used here because these rows mirror the reports in `results/`.
 
 | | What | Result | Label |
 |---|---|---|---|
@@ -91,40 +123,45 @@ What the real-market data says: on 300 practice paths, the best realistic hunche
 | E2 test bank | `.venv\Scripts\python.exe eval\testbank.py` (≈6 min, 12 workers) | fixed in `eval/testbank.py::build_cases` |
 | E3 | `eval\run_e3.py prepare`, then the challenge commands in [COMMANDS §5](docs/COMMANDS.md#5-e3-certified-hunches-on-the-hidden-challenge), then `eval\run_e3.py table` | each run's `COMMITMENT.txt` + `SEED-REVEAL.txt` in `results/challenge/<fp>/` |
 | E4 | `.venv\Scripts\python.exe eval\run_e4.py` (live Gemini; output varies run to run) | n/a |
-| Any in-app number | the trace drawer ("trace →" on every card): raw file SHA-256 → rule fingerprint → function → ledger seq + hash → Gemini interaction IDs | attack seeds in `skeptic/config.py` |
+| Any in-app number | the trace drawer ("trace →" on every card) | check seeds in `skeptic/config.py` |
 
-## Risk controls (enforced in code)
+The E2–E4 runs predate the plain-language wording, which changed only display text: no check, threshold or number changed.
 
-- **Human gates:** only a human click approves a rule card or opens the vault. The agent module has no function that reaches either (a test checks this).
-- **One-shot vault:** the pass mark is pre-committed in the ledger before the data is read. Re-opening replays the stored result. Any change after the vault blocks the idea and marks it contaminated, and a contaminated idea can never get SURVIVED.
-- **Trial counter:** A6 adjusts p for every distinct version of an idea (Bonferroni). Autocomplete shows an amber "N variants tested" pill computed in code (token overlap), not by the model.
-- **Number guard** on every explanation.
-- **Hash-chained, append-only log:** editing any line makes the badge show "Log tampered ✗".
-- **Limits:** a hunch ≤ 1,000 characters, ≤ 5 conditions, look-backs ≤ 200 bars, permutation K ≤ 2,000, per-session model-call caps, 20 MB uploads. Each limit returns a clear error and logs `limit_hit`.
+## Safety rails (enforced in code)
+
+- **You approve every rule, and only you can open the final exam.** The agent module has no function that reaches either (a test checks this).
+- **One-shot final exam:** the pass mark is pre-committed in the log before the data is read. Re-opening replays the stored result. Any change after the final exam blocks the idea and marks it contaminated, and a contaminated idea can never get SURVIVED.
+- **Try counter:** A6 makes the luck check stricter for every distinct version of an idea (Bonferroni). Autocomplete shows an amber warning, computed in code (token overlap), not by the model.
+- **Number check** on every explanation Gemini writes.
+- **Tamper-proof log:** editing any line makes the badge show "Log tampered ✗".
+- **Limits:** an idea ≤ 1,000 characters, ≤ 5 conditions, look-backs ≤ 200 bars, permutation K ≤ 2,000, per-session model-call caps, 20 MB uploads. Each limit returns a clear error and logs `limit_hit`.
+- **Live market data is suggestion text only.** It never reaches a test, the final exam or `adapter.py` (a test checks this).
 - **Prompt-injection hygiene:** user text is wrapped as data, and there are no tools to abuse.
 - The Google builder guide bans *"autonomous financial trading tools without deterministic verification checks and human approval gates."* Skeptic is built around exactly those two things.
 
 ## Limits and honest caveats
 
-- Rules are long-only, all-in/all-out, price-only and bar-based, because that is what the kit's runner can execute.
-- The bar interval is hidden (1h or 4h), so rule cards assume **1 bar = 1 hour**.
-- Practice and vault windows are drawn from the same pool of symbols and months, so some may overlap in time. The kit's hidden challenge (E3) is the stronger, independent test.
+- Rules are simple: buy with all the money, later sell it all; price only; one asset; bar-based. That is what the kit's runner can execute.
+- The bar interval is hidden (1h or 4h), so the rules assume **1 bar = 1 hour**.
+- Practice and final-exam windows are drawn from the same pool of coins and months, so some may overlap in time. The kit's hidden challenge (E3) is the stronger, independent test.
 - E2 and E4 are self-assessments. Synthetic random walks are not markets.
-- The A2 test differs from the spec: the spec's random-entry permutation was miscalibrated (22.5% false positives on null data), so we use a shuffled-returns test (6%). See [docs/DECISIONS.md](docs/DECISIONS.md) D1, and D2–D7 for the other deviations.
+- The A2 luck check differs from the spec: the spec's random-entry permutation was miscalibrated (22.5% false positives on null data), so we use a shuffled-returns test (6%). See [docs/DECISIONS.md](docs/DECISIONS.md) D1, and D2–D8 for the other deviations.
+- Today's-market ideas need internet and use live prices, but they are only suggestions. Testing always uses the fetched historical data.
 - **Nothing here is a claim of real-world profitability.** Backtests and the hidden challenge are past data.
 
 ## Repo map
 
 ```
-skeptic/   config · spec (rule card DSL) · features · engine · stats · data · attacks · vault · ledger · verdict
+skeptic/   config · spec (rule DSL) · features · engine · stats · data · attacks · vault · ledger · verdict
            pipeline · agent (Gemini) · numberguard · synthetic · markets · cli
-app/       server.py (FastAPI) · static/ (vanilla JS UI, no build step)
-adapter.py JSONL adapter the kit's runner calls (frozen rule card, no LLM)
+app/       server.py (FastAPI) · today.py (today's-market ideas, display only) · static/ (vanilla JS UI, no build step)
+adapter.py JSONL adapter the kit's runner calls (frozen rules, no LLM, no network)
 eval/      compare_parity · certify · testbank · run_e3 · run_e4 · translation_gold.json · e3_hunches.json
 results/   committed evidence (parity, testbank, e3, e4, challenge reports)
-docs/      COMMANDS.md (every kit command) · DECISIONS.md · SPEC.md · STATUS.md
+docs/      COMMANDS.md (every kit command) · DECISIONS.md (D1–D8) · SPEC.md · STATUS.md
+data/      hunch_library.json (our example ideas; everything else in data/ is gitignored)
 ```
 
 ## Data attribution
 
-Price data: **Binance Vision** public data, CC BY-NC-SA 4.0, fetched locally with the AgentVerse kit for non-commercial educational use. It is never redistributed: `data/` is gitignored, and committed challenge reports contain aggregate results only. This project is not endorsed by Binance.
+Historical price data: **Binance Vision** public data, CC BY-NC-SA 4.0, fetched locally with the AgentVerse kit for non-commercial educational use. It is never redistributed: `data/` is gitignored, and committed challenge reports contain aggregate results only. Today's-market suggestions read Binance's public 24-hour market summary live and store nothing. This project is not endorsed by Binance.

@@ -21,6 +21,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
+from app.today import today
 from skeptic import config
 from skeptic.agent import AgentCallError, AgentLimitError
 from skeptic.data import PRACTICE_INPUTS
@@ -270,6 +271,12 @@ def history(market: MarketName = "real"):
             sp["stage"] = v["payload"]["stage"] if v else None
             sp["vault"] = vault_status(ledger, sp["fingerprint"])["state"]
     return {"hunches": hunches[-100:], "ideas": sorted(ideas.values(), key=lambda i: i["specs"][-1]["ts"], reverse=True)}
+
+
+@app.get("/api/today")
+def today_ideas():
+    """Live 'today's market' idea suggestions for the empty hunch box. Display only (docs/DECISIONS.md D8)."""
+    return today()
 
 
 @app.get("/api/library")

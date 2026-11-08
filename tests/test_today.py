@@ -82,14 +82,73 @@ def test_cache_avoids_refetching(monkeypatch):
 
     def fake(url):
         calls.append(url)
-        assert "ticker/24hr" in url and "symbols=" in url
-        return json.dumps([row("BTCUSDT", -5, 90000, 96000, 89900)]).encode()
+        assert "ticker/24hr" in url and "type=MINI" in url  # one request for every coin
+        return json.dumps([mini("BTCUSDT", 96000, 90000, 96500, 89900, now_ms=1000.0 * 1000)]).encode()
 
     a = T.today(getter=fake, now=1000.0)
     b = T.today(getter=fake, now=1000.0 + 60)
     assert a["ok"] and a == b and len(calls) == 1
     T.today(getter=fake, now=1000.0 + T.CACHE_SECONDS + 1)
     assert len(calls) == 2
+
+
+# ---------------------------------------------------------------- every coin trading today
+NOW_MS = 1_800_000_000_000
+
+
+def mini(symbol, open_, last, high, low, vol=5_000_000, count=1000, now_ms=NOW_MS, close_age_ms=60_000):
+    """A row in the compact all-coins format (no priceChangePercent: change is computed from openPrice)."""
+    return {"symbol": symbol, "openPrice": str(open_), "lastPrice": str(last), "highPrice": str(high),
+            "lowPrice": str(low), "quoteVolume": str(vol), "count": count, "closeTime": now_ms - close_age_ms}
+
+
+def test_only_real_coins_trading_today_are_kept():
+    rows = [
+        mini("BTCUSDT", 100, 96, 101, 95),
+        mini("PEPEUSDT", 0.00001, 0.0000105, 0.0000106, 0.0000098),
+        mini("USDCUSDT", 1, 1, 1.001, 0.999),                    # stablecoin
+        mini("BTCUPUSDT", 10, 11, 12, 9),                        # leveraged token
+        mini("WBTCUSDT", 100, 96, 101, 95),                      # wrapped
+        mini("COINBUSDT", 130, 134, 135, 129),                   # tokenized share, not crypto
+        mini("DEADUSDT", 1, 1, 1, 1, close_age_ms=5 * 86_400_000),  # delisted: no trade for days
+        mini("TINYUSDT", 1, 1.1, 1.2, 0.9, vol=500),             # barely traded
+        mini("ETHBTC", 0.03, 0.031, 0.032, 0.029),               # not priced in dollars
+    ]
+    assert [r["symbol"] for r in T.tradable(rows, NOW_MS)] == ["BTCUSDT", "PEPEUSDT"]
+
+
+def test_three_ideas_per_coin_with_friendly_names_and_grammar():
+    rows = [mini("BTCUSDT", 100, 96, 101, 95), mini("PEPEUSDT", 1.0, 1.01, 1.08, 1.0),
+            mini("SUIUSDT", 2.0, 1.83, 2.02, 1.82)]
+    ideas = T.all_ideas_from_tickers(rows, NOW_MS)
+    by = {}
+    for i in ideas:
+        by.setdefault(i["symbol"], []).append(i)
+    assert {k: len(v) for k, v in by.items()} == {"BTC": 3, "PEPE": 3, "SUI": 3}
+    assert all(i["hunch"].startswith("Bitcoin ") for i in by["BTC"])  # friendly name for big coins
+    assert by["BTC"][0]["hunch"] == "Bitcoin bounces back after a 4% drop in a day"  # today's real move first
+    assert by["SUI"][0]["hunch"] == "Sui bounces back after an 8% drop in a day"  # 'an 8%', not 'a 8%'
+    assert len({i["hunch"] for i in ideas}) == len(ideas)
+    for i in ideas:
+        assert "bars" not in i["hunch"] and "sell" not in i["hunch"].lower()
+
+
+def test_list_is_capped(monkeypatch):
+    monkeypatch.setattr(T, "MAX_ALL", 7)
+    rows = [mini(f"C{n:03d}XUSDT", 1, 1.01, 1.02, 0.99) for n in range(10)]
+    assert len(T.all_ideas_from_tickers(rows, NOW_MS)) == 7
+
+
+def test_full_list_failure_falls_back_to_six_coins(monkeypatch):
+    monkeypatch.setattr(T, "_cache", {"at": 0.0, "data": None})
+
+    def fake(url):
+        if "type=MINI" in url:
+            raise TimeoutError("1 MB over venue wifi")
+        return json.dumps([row("BTCUSDT", -5, 90000, 96000, 89900)]).encode()
+
+    out = T.today(getter=fake, now=1000.0)
+    assert out["ok"] and out["ideas"] and out["all"] == []
 
 
 def test_live_data_never_reaches_the_maths():

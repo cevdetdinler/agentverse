@@ -62,8 +62,8 @@ Every call is logged with its interaction ID and token counts. Per-session call 
 
 ## Using the app
 
-- **Start from today's market.** Click into the empty box. The app suggests ideas built from today's actual moves, for example *"XRP $1.16, −1.5% today → Buy XRP if it drops 3% or more within 24 hours, and sell 24 hours later"*. They come from Binance's free public 24-hour summary, turned into ideas by plain code, with no model involved. They are display-only: they never feed a test. They are also offline-safe: if the venue Wi-Fi is down, you get the examples below instead (DECISIONS D8).
-- **Or pick an idea people often post**, such as "Bitcoin always bounces after a 10% drop in a day", or type your own. Autocomplete matches your past ideas and the examples instantly, then Gemini suggests precise wording when you pause. If an idea looks like one you've already tested, an amber pill tells you the luck check will now be stricter.
+- **Start from today's market.** Click into the empty box for five ideas built from today's actual moves of big coins, for example *"Solana bounces back after any 3% dip · Solana $89.45, −1.0% today"*. Then type any coin ("pepe", "sui", "bitcoin") to search **about 1,000 live ideas across ~320–350 actively traded coins**. They come from Binance's free public 24-hour summary, turned into short everyday-language ideas by plain code, with no model involved. A note under them says what is true: every idea is tested on Skeptic's general set of past crypto prices, not on that coin's own history. They are display-only and never feed a test. They are offline-safe: if the venue Wi-Fi is down, you get the built-in examples instead (DECISIONS D8).
+- **Or pick an idea people often post**, such as "Bitcoin always bounces after a 10% drop in a day", or type your own. Autocomplete matches your past ideas, the examples and today's ideas instantly. When you pause, Gemini finishes your sentence the way a person would ("…after a quick 10 percent flash crash"), with no rule syntax; the exact numbers come later, from its clarifying questions. If an idea looks like one you've already tested, an amber pill tells you the luck check will now be stricter.
 - **Or upload a post or video** ("Check a post or video…"). Gemini quotes the claim and drafts the idea, and you still approve the rules.
 - **Approve the rules.** They are shown exactly, with a plain-words sentence underneath, and every number is editable.
 - **"Trying to break it"** opens with what was tested (your idea, the rules in plain words, the data, what "just holding" means, and the result at a glance). Switch between three levels of detail:
@@ -86,7 +86,7 @@ Then fetch the data with the AgentVerse kit (folder `agentverse/` dropped into t
 
 ```powershell
 .venv\Scripts\python.exe -m uvicorn app.server:app --port 8000
-.venv\Scripts\python.exe -m pytest           # 101 tests, no network or API key needed
+.venv\Scripts\python.exe -m pytest           # 109 tests, no network or API key needed
 ```
 
 Open http://127.0.0.1:8000. The server doesn't reload code by itself, so restart it after pulling changes.
@@ -154,7 +154,7 @@ The E2–E4 runs predate the plain-language wording, which changed only display 
 ```
 skeptic/   config · spec (rule DSL) · features · engine · stats · data · attacks · vault · ledger · verdict
            pipeline · agent (Gemini) · numberguard · synthetic · markets · cli
-app/       server.py (FastAPI) · today.py (today's-market ideas, display only) · static/ (vanilla JS UI, no build step)
+app/       server.py (FastAPI) · today.py (~1,000 today's-market ideas, display only) · static/ (vanilla JS UI, no build step)
 adapter.py JSONL adapter the kit's runner calls (frozen rules, no LLM, no network)
 eval/      compare_parity · certify · testbank · run_e3 · run_e4 · translation_gold.json · e3_hunches.json
 results/   committed evidence (parity, testbank, e3, e4, challenge reports)

@@ -143,7 +143,9 @@ async function loadToday() {
   try {
     const out = await api("/api/today");
     S.today = out.ok ? out.ideas || [] : [];
-  } catch { S.today = []; }
+    S.todayAll = out.ok ? out.all || [] : [];
+    S.todayCoins = out.coins || 0;
+  } catch { S.today = []; S.todayAll = []; S.todayCoins = 0; }
   if (document.activeElement === $("#hunch") && !$("#hunch").value.trim()) renderSuggest();
 }
 
@@ -151,18 +153,34 @@ function layer1(q) {
   const ql = q.trim().toLowerCase();
   if (ql.length < 2) return [];
   const past = (S.history?.hunches || []).map((h) => ({ text: h.text, src: "yours" }));
-  const today = (S.today || []).map((i) => ({ text: i.hunch, src: "today: " + i.fact }));
   const lib = S.library.map((t) => ({ text: t, src: "example" }));
   const seen = new Set();
-  return [...past.reverse(), ...today, ...lib]
+  const general = [...past.reverse(), ...lib]
     .map((h) => {
       const t = h.text.toLowerCase();
       const score = t.startsWith(ql) ? 2 + ql.length / t.length : t.includes(ql) ? 1 : jaccard(ql, t);
       return { ...h, score };
     })
-    .filter((h) => h.score > 0.34 && !seen.has(h.text) && seen.add(h.text) && h.text.toLowerCase() !== ql)
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 5);
+    .filter((h) => h.score > 0.34 && !seen.has(h.text) && seen.add(h.text) && h.text.toLowerCase() !== ql);
+  return [...todayMatches(ql, seen), ...general].sort((a, b) => b.score - a.score).slice(0, 6);
+}
+
+// search ~1,000 live ideas by coin (type "pepe", "sol", "bitcoin"…) or by words in the idea; at most 3 shown
+function todayMatches(ql, seen) {
+  const all = S.todayAll || [];
+  if (!all.length) return [];
+  const words = ql.split(/\s+/).filter((w) => w.length >= 2);
+  const out = [];
+  for (const i of all) {
+    const coin = i.coin.toLowerCase(), sym = (i.symbol || "").toLowerCase(), t = i.hunch.toLowerCase();
+    let score = 0;
+    if (t.startsWith(ql)) score = 2.6;
+    else if (words.some((w) => sym === w || coin === w || (w.length >= 3 && (sym.startsWith(w) || coin.startsWith(w))))) score = 2.2;
+    else if (ql.length >= 4 && t.includes(ql)) score = 1.1;
+    if (score && !seen.has(i.hunch)) { seen.add(i.hunch); out.push({ text: i.hunch, src: "today: " + i.fact, score, today: true }); }
+    if (out.length >= 3) break;
+  }
+  return out;
 }
 
 function variantWarning(q) {
@@ -246,7 +264,8 @@ function renderSuggest() {
     const today = (S.today || []).slice(0, 5);
     const examples = S.library.slice(0, today.length ? 3 : 6);
     let html = "";
-    if (today.length) html += `<div class="group"><div class="label">Today’s markets · live from Binance · ideas you could test</div>${today.map((i) => item(i.hunch, i.fact)).join("")}</div>`;
+    const count = (S.todayAll || []).length;
+    if (today.length) html += `<div class="group"><div class="label">Today’s markets · live from Binance${count ? ` · ${count.toLocaleString()} ideas across ${S.todayCoins} coins: type a coin to search` : ""}</div>${today.map((i) => item(i.hunch, i.fact)).join("")}<div class="note">Ideas come from today’s real moves. Every idea is tested on Skeptic’s general set of past crypto prices, not on that coin’s own history.</div></div>`;
     if (examples.length) html += `<div class="group"><div class="label">Ideas people often post</div>${examples.map((t) => item(t)).join("")}</div>`;
     if (!html) { box.classList.add("hidden"); return; }
     box.innerHTML = html;
@@ -257,7 +276,10 @@ function renderSuggest() {
   if (!l1.length && !l2.length || document.activeElement !== $("#hunch")) { box.classList.add("hidden"); return; }
   let html = "";
   if (l2.length) html += `<div class="group"><div class="label">Gemini · ${esc(S.config.models.router)} · finishing your idea</div>${l2.map((t) => `<div class="item" data-text="${esc(t)}">${esc(t)}</div>`).join("")}</div>`;
-  if (l1.length) html += `<div class="group"><div class="label">Instant · your ideas + examples (no AI)</div>${l1.map((h) => `<div class="item" data-text="${esc(h.text)}">${esc(h.text)}<span class="hint">${h.src}</span></div>`).join("")}</div>`;
+  if (l1.length) {
+    const anyToday = l1.some((h) => h.today);
+    html += `<div class="group"><div class="label">Instant · your ideas, examples${anyToday ? " and today’s markets" : ""} (no AI)</div>${l1.map((h) => item(h.text, h.src)).join("")}${anyToday ? `<div class="note">Ideas come from today’s real moves. Every idea is tested on Skeptic’s general set of past crypto prices, not on that coin’s own history.</div>` : ""}</div>`;
+  }
   box.innerHTML = html;
   box.classList.remove("hidden");
   box.querySelectorAll(".item").forEach((it) => it.addEventListener("mousedown", (e) => { e.preventDefault(); accept(it.dataset.text); }));

@@ -1,6 +1,6 @@
 # Build status (2026-11-08)
 
-All milestones M0–M9 are done and committed; GitHub has everything up to e0ca351 (push the newer commits). 105 tests pass.
+All milestones M0–M9 are done and committed; GitHub has everything up to e0ca351 (push the newer commits). 109 tests pass.
 
 | Item | State |
 |---|---|
@@ -11,7 +11,7 @@ All milestones M0–M9 are done and committed; GitHub has everything up to e0ca3
 | Plain language | Website, Gemini prompts and deck use everyday words (luck check, final exam, % not bps); technical terms are kept in the evidence reports and the speaker notes |
 | Synthetic market | Labelled switch; the full final-exam → edit → block flow is verified in headless Chromium |
 | Screenshot ingest (M9) | Tested live with a fictional finfluencer post. **Video clips are not yet tested** |
-| Today's market ideas (D8) | Display-only suggestions from Binance's public 24 h summary; works offline via fallback |
+| Today's market ideas (D8) | ~966 display-only ideas across ~322 coins from Binance's public 24 h summary ($100k+ daily volume); labelled as tested on the general price set, not each coin's own history; offline fallback |
 | Pitch deck | 20 slides: https://claude.ai/artifact/DJgbmaLsYEuuJrxHKqCG7P (private until shared) |
 
 ## Remaining
